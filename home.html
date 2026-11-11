@@ -432,16 +432,27 @@
             { id: "105", name: 'Gel Ink Pens (12-Pack)', category: 'Office Supplies', subcategory: 'Writing Instruments', price: 14.99, quantity: 120 }
         ];
 
+        const DEFAULT_USERS = [
+            { name: "Admin User", email: "admin@stockpulse.com", password: "admin123" }
+        ];
+
         // State Store
         let state = {
             currentUser: null,
             authMode: 'login', // 'login' or 'register'
             activeTab: 'inventory', // 'inventory' or 'categories'
+            users: JSON.parse(localStorage.getItem('sp_users')) || DEFAULT_USERS,
             categories: JSON.parse(localStorage.getItem('sp_categories')) || DEFAULT_CATEGORIES,
             items: JSON.parse(localStorage.getItem('sp_items')) || DEFAULT_ITEMS
         };
 
-        // --- APP INITIALIZATION ---
+        // Ensure default admin user exists if sp_users missing admin
+        if (!state.users.some(u => u.email.toLowerCase() === "admin@stockpulse.com")) {
+            state.users.push(DEFAULT_USERS[0]);
+            localStorage.setItem('sp_users', JSON.stringify(state.users));
+        }
+
+        // --- INITIALIZATION ---
         window.onload = function() {
             // Check logged in user session
             const storedUser = localStorage.getItem('sp_session_user');
@@ -482,29 +493,52 @@
 
         function handleAuthSubmit(e) {
             e.preventDefault();
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const name = document.getElementById('authName').value.trim() || 'User';
+            const emailInput = document.getElementById('authEmail').value.trim().toLowerCase();
+            const passwordInput = document.getElementById('authPassword').value;
+            const nameInput = document.getElementById('authName').value.trim() || 'User';
 
             if (state.authMode === 'login') {
-                // Simulate Authentication
-                if (email === "admin@stockpulse.com" && password === "admin123") {
-                    state.currentUser = { name: "Admin User", email: email };
-                } else if (email && password.length >= 4) {
-                    state.currentUser = { name: email.split('@')[0], email: email };
+                // Find matching user in state/localStorage
+                const matchedUser = state.users.find(u => u.email.toLowerCase() === emailInput && u.password === passwordInput);
+                
+                if (matchedUser) {
+                    state.currentUser = { name: matchedUser.name, email: matchedUser.email };
+                    localStorage.setItem('sp_session_user', JSON.stringify(state.currentUser));
+                    showToast(`Welcome back, ${matchedUser.name}!`, "success");
+                    showDashboard();
                 } else {
-                    showToast("Invalid credentials. Try admin@stockpulse.com / admin123", "error");
+                    showToast("Invalid email or password. Please try again.", "error");
                     return;
                 }
-                showToast("Logged in successfully!", "success");
             } else {
-                // Register User Simulation
-                state.currentUser = { name: name, email: email };
-                showToast("Account created successfully!", "success");
-            }
+                // Register User Flow
+                const existingUser = state.users.find(u => u.email.toLowerCase() === emailInput);
+                if (existingUser) {
+                    showToast("An account with this email already exists. Please log in.", "error");
+                    switchAuthTab('login');
+                    return;
+                }
 
-            localStorage.setItem('sp_session_user', JSON.stringify(state.currentUser));
-            showDashboard();
+                if (passwordInput.length < 4) {
+                    showToast("Password must be at least 4 characters long", "error");
+                    return;
+                }
+
+                const newUser = {
+                    name: nameInput,
+                    email: emailInput,
+                    password: passwordInput
+                };
+
+                state.users.push(newUser);
+                localStorage.setItem('sp_users', JSON.stringify(state.users));
+
+                state.currentUser = { name: newUser.name, email: newUser.email };
+                localStorage.setItem('sp_session_user', JSON.stringify(state.currentUser));
+
+                showToast("Account registered and logged in successfully!", "success");
+                showDashboard();
+            }
         }
 
         function handleLogout() {
