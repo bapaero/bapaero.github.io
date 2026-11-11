@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockPulse - Modern Inventory Management System</title>
+    <title>BAP Inventory - Barry Ave Plating Co.</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -19,9 +19,9 @@
                         brand: {
                             50: '#f0f7ff',
                             100: '#e0effe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
                         }
                     },
                     fontFamily: {
@@ -62,11 +62,14 @@
                 
                 <!-- Logo & Header -->
                 <div class="text-center mb-8 relative z-10">
-                    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-brand-600/20 text-brand-500 mb-4 border border-brand-500/30">
-                        <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white mb-3 border border-blue-400/30 shadow-lg shadow-blue-500/20">
+                        <div class="flex flex-col items-center leading-none">
+                            <span class="font-black text-lg tracking-wider">BAP</span>
+                            <span class="text-[9px] uppercase tracking-widest font-semibold text-blue-200">L.A.</span>
+                        </div>
                     </div>
                     <h1 class="text-2xl font-bold tracking-tight text-white" id="authTitle">Welcome Back</h1>
-                    <p class="text-xs text-slate-400 mt-1" id="authSubtitle">Sign in to access your inventory workspace</p>
+                    <p class="text-xs text-slate-400 mt-1" id="authSubtitle">Barry Ave Plating Co. &bull; Los Angeles, CA</p>
                 </div>
 
                 <!-- Form Tabs -->
@@ -89,7 +92,7 @@
                         <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
                         <div class="relative">
                             <i class="fa-solid fa-envelope absolute left-3 top-3 text-slate-400 text-xs"></i>
-                            <input type="email" id="authEmail" required class="w-full pl-9 pr-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors" placeholder="admin@stockpulse.com">
+                            <input type="email" id="authEmail" required class="w-full pl-9 pr-3 py-2.5 bg-slate-900/90 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-colors" placeholder="admin@bap.com">
                         </div>
                     </div>
 
@@ -109,7 +112,8 @@
 
                 <!-- Demo Hint Footer -->
                 <div class="mt-6 pt-5 border-t border-slate-700/50 text-center text-xs text-slate-400">
-                    <p>Demo Account: <span class="font-mono text-brand-400">admin@stockpulse.com</span> / <span class="font-mono text-brand-400">admin123</span></p>
+                    <p>Demo Account: <span class="font-mono text-brand-400">admin@bap.com</span> / <span class="font-mono text-brand-400">admin123</span></p>
+                    <p class="text-[11px] text-slate-500 mt-1">2210 Barry Ave, Los Angeles, CA 90064</p>
                 </div>
             </div>
         </div>
@@ -120,12 +124,15 @@
             <!-- Sidebar Navigation -->
             <aside class="w-full md:w-64 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col shrink-0">
                 <!-- App Brand Header -->
-                <div class="h-16 flex items-center px-6 border-b border-slate-800 justify-between">
+                <div class="h-20 flex items-center px-6 border-b border-slate-800 justify-between">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold shadow-md">
-                            <i class="fa-solid fa-boxes-stacked text-sm"></i>
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-black text-xs tracking-wider shadow-md border border-blue-400/20">
+                            BAP
                         </div>
-                        <span class="font-bold text-lg text-white tracking-wide">Stock<span class="text-brand-500">Pulse</span></span>
+                        <div>
+                            <span class="font-bold text-base text-white tracking-wide block leading-tight">BAP <span class="text-brand-500">Inventory</span></span>
+                            <span class="text-[10px] text-slate-400 font-medium block">Barry Ave Plating &bull; L.A.</span>
+                        </div>
                     </div>
                 </div>
 
@@ -148,8 +155,8 @@
                             A
                         </div>
                         <div class="truncate">
-                            <p class="text-sm font-medium text-white truncate" id="userNameDisplay">Admin User</p>
-                            <p class="text-xs text-slate-400 truncate" id="userEmailDisplay">admin@stockpulse.com</p>
+                            <p class="text-sm font-medium text-white truncate" id="userNameDisplay">BAP Admin User</p>
+                            <p class="text-xs text-slate-400 truncate" id="userEmailDisplay">admin@bap.com</p>
                         </div>
                     </div>
                     <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Logout">
@@ -419,21 +426,22 @@
     <script>
         // --- INITIAL STATE & DATA ---
         const DEFAULT_CATEGORIES = {
-            "Electronics": ["Laptops", "Smartphones", "Peripherals", "Audio"],
-            "Furniture": ["Desks", "Chairs", "Storage Cabinets", "Lighting"],
-            "Office Supplies": ["Paper Products", "Writing Instruments", "Organizers"]
+            "Anodizing": ["Type II Sulfuric", "Type III Hardcoat", "Chromate Conversion"],
+            "Electroplating": ["Cadmium Plating", "Nickel Plating", "Gold & Silver Plating"],
+            "Raw Chemicals": ["Acids & Etchants", "Sealants & Dyes", "Cleaners & Degreasers"],
+            "Supplies & Equipment": ["Racks & Fixtures", "Anode Baskets", "Testing Supplies"]
         };
 
         const DEFAULT_ITEMS = [
-            { id: "101", name: 'MacBook Pro 16"', category: 'Electronics', subcategory: 'Laptops', price: 2499.99, quantity: 12 },
-            { id: "102", name: 'Logitech MX Master 3S', category: 'Electronics', subcategory: 'Peripherals', price: 99.99, quantity: 45 },
-            { id: "103", name: 'Ergonomic Mesh Chair', category: 'Furniture', subcategory: 'Chairs', price: 349.50, quantity: 4 },
-            { id: "104", name: 'Standing Desk Dual-Motor', category: 'Furniture', subcategory: 'Desks', price: 599.00, quantity: 8 },
-            { id: "105", name: 'Gel Ink Pens (12-Pack)', category: 'Office Supplies', subcategory: 'Writing Instruments', price: 14.99, quantity: 120 }
+            { id: "101", name: 'Type III Hardcoat Solution (55 Gal)', category: 'Anodizing', subcategory: 'Type III Hardcoat', price: 450.00, quantity: 8 },
+            { id: "102", name: 'Cadmium Anode Balls (25 lb)', category: 'Electroplating', subcategory: 'Cadmium Plating', price: 295.50, quantity: 15 },
+            { id: "103", name: 'Titanium Anodizing Rack (Custom)', category: 'Supplies & Equipment', subcategory: 'Racks & Fixtures', price: 120.00, quantity: 4 },
+            { id: "104", name: 'Chromate Sealant Clear (5 Gal)', category: 'Anodizing', subcategory: 'Chromate Conversion', price: 85.00, quantity: 3 },
+            { id: "105", name: 'pH Calibration Buffer Kit', category: 'Supplies & Equipment', subcategory: 'Testing Supplies', price: 42.00, quantity: 24 }
         ];
 
         const DEFAULT_USERS = [
-            { name: "Admin User", email: "admin@stockpulse.com", password: "admin123" }
+            { name: "BAP Admin User", email: "admin@bap.com", password: "admin123" }
         ];
 
         // State Store
@@ -446,8 +454,8 @@
             items: JSON.parse(localStorage.getItem('sp_items')) || DEFAULT_ITEMS
         };
 
-        // Ensure default admin user exists if sp_users missing admin
-        if (!state.users.some(u => u.email.toLowerCase() === "admin@stockpulse.com")) {
+        // Ensure default BAP admin user exists
+        if (!state.users.some(u => u.email.toLowerCase() === "admin@bap.com")) {
             state.users.push(DEFAULT_USERS[0]);
             localStorage.setItem('sp_users', JSON.stringify(state.users));
         }
