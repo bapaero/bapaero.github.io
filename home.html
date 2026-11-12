@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAP Inventory - Barry Ave Plating Co.</title>
+    <title>BAP Inventory - Barry Avenue Plating Co.</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -19,9 +19,9 @@
                         brand: {
                             50: '#f0f7ff',
                             100: '#e0effe',
-                            500: '#2563eb',
-                            600: '#1d4ed8',
-                            700: '#1e40af',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
                         }
                     },
                     fontFamily: {
@@ -64,7 +64,7 @@
                 <div class="text-center mb-8 relative z-10">
                     <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white mb-3 border border-blue-400/30 shadow-lg shadow-blue-500/20">
                         <div class="flex flex-col items-center leading-none">
-                            <span class="font-black text-lg tracking-wider">BAP</span>
+                            <span class="font-black text-lg tracking-wider text-white">BAP</span>
                             <span class="text-[9px] uppercase tracking-widest font-semibold text-blue-200">L.A.</span>
                         </div>
                     </div>
@@ -155,8 +155,8 @@
                             A
                         </div>
                         <div class="truncate">
-                            <p class="text-sm font-medium text-white truncate" id="userNameDisplay">BAP Admin User</p>
-                            <p class="text-xs text-slate-400 truncate" id="userEmailDisplay">admin@bap.com</p>
+                            <p class="text-sm font-medium text-white truncate" id="userNameDisplay">Admin User</p>
+                            <p class="text-xs text-slate-400 truncate" id="userEmailDisplay">admin@stockpulse.com</p>
                         </div>
                     </div>
                     <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Logout">
@@ -215,9 +215,9 @@
                             <div class="flex items-center justify-between">
                                 <div>
                                     <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Low Stock Warning</p>
-                                    <h3 class="text-2xl font-bold text-amber-400 mt-1" id="statLowStock">0</h3>
+                                    <h3 class="text-2xl font-bold text-orange-400 mt-1" id="statLowStock">0</h3>
                                 </div>
-                                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                                <div class="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
                                     <i class="fa-solid fa-triangle-exclamation text-lg"></i>
                                 </div>
                             </div>
@@ -424,6 +424,15 @@
 
     <!-- ================= JAVASCRIPT STATE & LOGIC ================= -->
     <script>
+        // --- CRYPTOGRAPHIC HELPERS (SHA-256 Password Hashing) ---
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         // --- INITIAL STATE & DATA ---
         const DEFAULT_CATEGORIES = {
             "Anodizing": ["Type II Sulfuric", "Type III Hardcoat", "Chromate Conversion"],
@@ -440,9 +449,9 @@
             { id: "105", name: 'pH Calibration Buffer Kit', category: 'Supplies & Equipment', subcategory: 'Testing Supplies', price: 42.00, quantity: 24 }
         ];
 
+        // SHA-256 Hash of 'admin123' -> 240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9
         const DEFAULT_USERS = [
-            { name: "BAP Admin User", email: "admin@bap.com", password: "admin123" },
-            {name: "bwaters", email: "b@mail.com", password: "1234"}
+            { name: "BAP Admin User", email: "admin@bap.com", passwordHash: "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9" }
         ];
 
         // State Store
@@ -455,7 +464,7 @@
             items: JSON.parse(localStorage.getItem('sp_items')) || DEFAULT_ITEMS
         };
 
-        // Ensure default BAP admin user exists
+        // Ensure default BAP admin user exists in hashed format
         if (!state.users.some(u => u.email.toLowerCase() === "admin@bap.com")) {
             state.users.push(DEFAULT_USERS[0]);
             localStorage.setItem('sp_users', JSON.stringify(state.users));
@@ -500,17 +509,30 @@
             }
         }
 
-        function handleAuthSubmit(e) {
+        async function handleAuthSubmit(e) {
             e.preventDefault();
             const emailInput = document.getElementById('authEmail').value.trim().toLowerCase();
             const passwordInput = document.getElementById('authPassword').value;
             const nameInput = document.getElementById('authName').value.trim() || 'User';
 
+            // Hash user password using Web Crypto SHA-256
+            const hashedInputPassword = await hashPassword(passwordInput);
+
             if (state.authMode === 'login') {
-                // Find matching user in state/localStorage
-                const matchedUser = state.users.find(u => u.email.toLowerCase() === emailInput && u.password === passwordInput);
+                // Check hashed credentials
+                const matchedUser = state.users.find(u => 
+                    u.email.toLowerCase() === emailInput && 
+                    (u.passwordHash === hashedInputPassword || u.password === passwordInput) // backwards compatibility for old plain text session if any
+                );
                 
                 if (matchedUser) {
+                    // Update user record to hashed format if legacy plain text existed
+                    if (matchedUser.password) {
+                        matchedUser.passwordHash = hashedInputPassword;
+                        delete matchedUser.password;
+                        localStorage.setItem('sp_users', JSON.stringify(state.users));
+                    }
+
                     state.currentUser = { name: matchedUser.name, email: matchedUser.email };
                     localStorage.setItem('sp_session_user', JSON.stringify(state.currentUser));
                     showToast(`Welcome back, ${matchedUser.name}!`, "success");
@@ -533,10 +555,11 @@
                     return;
                 }
 
+                // Store user with hashed password only
                 const newUser = {
                     name: nameInput,
                     email: emailInput,
-                    password: passwordInput
+                    passwordHash: hashedInputPassword
                 };
 
                 state.users.push(newUser);
@@ -545,7 +568,7 @@
                 state.currentUser = { name: newUser.name, email: newUser.email };
                 localStorage.setItem('sp_session_user', JSON.stringify(state.currentUser));
 
-                showToast("Account registered and logged in successfully!", "success");
+                showToast("Account registered securely and logged in!", "success");
                 showDashboard();
             }
         }
@@ -655,7 +678,7 @@
                     row.innerHTML = `
                         <td class="px-5 py-4 font-medium text-white flex items-center gap-2">
                             <span>${escapeHtml(item.name)}</span>
-                            ${isLowStock ? `<span class="px-2 py-0.5 text-[10px] uppercase font-bold rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Low Stock</span>` : ''}
+                            ${isLowStock ? `<span class="px-2 py-0.5 text-[10px] uppercase font-bold rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">Low Stock</span>` : ''}
                         </td>
                         <td class="px-5 py-4">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
@@ -664,7 +687,7 @@
                         </td>
                         <td class="px-5 py-4 text-slate-400 text-xs">${escapeHtml(item.subcategory)}</td>
                         <td class="px-5 py-4 text-right font-mono text-slate-200">$${Number(item.price).toFixed(2)}</td>
-                        <td class="px-5 py-4 text-center font-bold ${isLowStock ? 'text-amber-400' : 'text-slate-200'}">${item.quantity}</td>
+                        <td class="px-5 py-4 text-center font-bold ${isLowStock ? 'text-orange-400' : 'text-slate-200'}">${item.quantity}</td>
                         <td class="px-5 py-4 text-right font-mono font-semibold text-emerald-400">$${Number(totalVal).toLocaleString()}</td>
                         <td class="px-5 py-4 text-center">
                             <div class="flex items-center justify-center gap-2">
