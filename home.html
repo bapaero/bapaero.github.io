@@ -56,7 +56,6 @@
 
       <!-- Error / Status Alert -->
       <div id="auth-error" class="hidden mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium"></div>
-      <div id="auth-success" class="hidden mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium"></div>
 
       <!-- Auth Form -->
       <form id="auth-form" class="space-y-4">
@@ -79,9 +78,26 @@
       <div class="mt-6 pt-5 border-t border-slate-800/80 text-center">
         <p class="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
-          Cloud Sync Enabled across all devices
+          Secure Approval Gate Enabled
         </p>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== PENDING APPROVAL SCREEN ==================== -->
+  <div id="pending-screen" class="hidden min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#090d16] to-[#090d16]">
+    <div class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl p-8 text-center backdrop-blur-sm">
+      <div class="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mx-auto mb-4 text-orange-400 text-2xl">
+        ⏳
+      </div>
+      <h2 class="text-xl font-bold text-white mb-2">Account Pending Approval</h2>
+      <p class="text-sm text-slate-400 mb-6">Your registration has been recorded. An administrator must approve your account before you can access the BAP Inventory dashboard.</p>
+      <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 mb-6 text-xs text-slate-300">
+        Signed in as: <span id="pending-email-display" class="font-medium text-blue-400"></span>
+      </div>
+      <button onclick="handleLogout()" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl transition">
+        Sign Out / Switch Account
+      </button>
     </div>
   </div>
 
@@ -330,10 +346,11 @@
       getFirestore, 
       collection, 
       doc, 
+      getDoc,
+      setDoc,
       addDoc, 
       updateDoc, 
       deleteDoc, 
-      setDoc,
       onSnapshot,
       query,
       orderBy
@@ -361,6 +378,7 @@
     let categoriesData = [];
     let unsubscribeItems = null;
     let unsubscribeCategories = null;
+    let unsubscribeUserDoc = null;
 
     // Default starter categories if database is brand new
     const defaultCategories = [
@@ -393,12 +411,10 @@
       const el = document.getElementById('auth-error');
       el.textContent = msg;
       el.classList.remove('hidden');
-      document.getElementById('auth-success').classList.add('hidden');
     }
 
     function hideAuthMessages() {
       document.getElementById('auth-error').classList.add('hidden');
-      document.getElementById('auth-success').classList.add('hidden');
     }
 
     document.getElementById('auth-form').addEventListener('submit', async (e) => {
@@ -408,13 +424,21 @@
       const password = document.getElementById('auth-password').value;
       const btn = document.getElementById('auth-submit-btn');
       btn.disabled = true;
-      btn.opacity = '0.7';
 
       try {
         if (authMode === 'login') {
           await signInWithEmailAndPassword(auth, email, password);
         } else {
-          await createUserWithEmailAndPassword(auth, email, password);
+          // 1. Create Auth Account
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          // 2. Create pending user record in Firestore (approved: false)
+          await setDoc(doc(db, 'users', user.uid), {
+            email: user.email,
+            approved: false,
+            createdAt: new Date().toISOString()
+          });
         }
       } catch (err) {
         let message = err.message;
@@ -434,21 +458,57 @@
     window.handleLogout = async () => {
       if (unsubscribeItems) unsubscribeItems();
       if (unsubscribeCategories) unsubscribeCategories();
+      if (unsubscribeUserDoc) unsubscribeUserDoc();
       await signOut(auth);
     };
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
         document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('app-screen').classList.remove('hidden');
-        document.getElementById('user-email-display').textContent = user.email;
-        startRealtimeListeners();
+        
+        // Listen to user's approval status in real-time
+        const userDocRef = doc(db, 'users', user.uid);
+        unsubscribeUserDoc = onSnapshot(userDocRef, async (docSnap) => {
+          if (!docSnap.exists()) {
+            // If user record doesn't exist in Firestore yet, create it as pending
+            await setDoc(userDocRef, {
+              email: user.email,
+              approved: false,
+              createdAt: new Date().toISOString()
+            });
+            showPendingScreen(user.email);
+            return;
+          }
+
+          const userData = docSnap.data();
+          if (userData.approved === true) {
+            // User is approved! Show main dashboard
+            document.getElementById('pending-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+            document.getElementById('user-email-display').textContent = user.email;
+            startRealtimeListeners();
+          } else {
+            // User is pending approval
+            document.getElementById('app-screen').classList.add('hidden');
+            showPendingScreen(user.email);
+          }
+        });
+
       } else {
+        if (unsubscribeItems) unsubscribeItems();
+        if (unsubscribeCategories) unsubscribeCategories();
+        if (unsubscribeUserDoc) unsubscribeUserDoc();
         document.getElementById('app-screen').classList.add('hidden');
+        document.getElementById('pending-screen').classList.add('hidden');
         document.getElementById('auth-screen').classList.remove('hidden');
         document.getElementById('auth-password').value = '';
       }
     });
+
+    function showPendingScreen(email) {
+      document.getElementById('pending-email-display').textContent = email;
+      document.getElementById('pending-screen').classList.remove('hidden');
+    }
 
     // ==================== REAL-TIME FIRESTORE SYNC ====================
     function startRealtimeListeners() {
@@ -456,7 +516,6 @@
       const catRef = collection(db, 'categories');
       unsubscribeCategories = onSnapshot(catRef, async (snapshot) => {
         if (snapshot.empty) {
-          // Seed initial plating categories once if database is empty
           for (const cat of defaultCategories) {
             await setDoc(doc(db, 'categories', cat.id), {
               name: cat.name,
@@ -474,8 +533,6 @@
         populateCategoryDropdowns();
         renderCategoriesView();
         updateStats();
-      }, (error) => {
-        console.error("Categories sync error:", error);
       });
 
       // 2. Listen to Inventory Items collection
@@ -488,15 +545,6 @@
 
         renderInventory();
         updateStats();
-      }, (error) => {
-        console.error("Inventory sync error:", error);
-        document.getElementById('inventory-tbody').innerHTML = `
-          <tr>
-            <td colspan="7" class="py-10 text-center text-red-400 text-xs">
-              Database connection error: ${error.message}. Make sure Firestore rules allow read/write.
-            </td>
-          </tr>
-        `;
       });
     }
 
