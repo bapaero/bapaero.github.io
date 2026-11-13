@@ -26,9 +26,68 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #475569;
     }
+
+    /* ==================== PRINT STYLES ==================== */
+    @media print {
+      body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+      }
+      #auth-screen,
+      #pending-screen,
+      #app-screen,
+      #item-modal,
+      #print-modal {
+        display: none !important;
+      }
+      #print-area {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      th, td {
+        border: 1px solid #cbd5e1;
+        padding: 8px 10px;
+      }
+      th {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.05em;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- ==================== DEDICATED PRINT LAYOUT (HIDDEN ON SCREEN) ==================== -->
+  <div id="print-area" class="hidden bg-white text-black p-8">
+    <div class="border-b-2 border-slate-800 pb-4 mb-6 flex justify-between items-end">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">BAP Inventory Report</h1>
+        <p class="text-sm font-medium text-slate-700">Barry Ave Plating Co. • Los Angeles, CA</p>
+      </div>
+      <div class="text-right text-xs text-slate-600">
+        <p id="print-meta-date"></p>
+        <p id="print-meta-filter" class="font-semibold text-slate-800 mt-0.5"></p>
+      </div>
+    </div>
+
+    <table id="print-table">
+      <thead id="print-thead"></thead>
+      <tbody id="print-tbody"></tbody>
+      <tfoot id="print-tfoot"></tfoot>
+    </table>
+  </div>
 
   <!-- ==================== AUTHENTICATION SCREEN ==================== -->
   <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#090d16] to-[#090d16]">
@@ -54,7 +113,7 @@
         </button>
       </div>
 
-      <!-- Error / Status Alert -->
+      <!-- Error Alert -->
       <div id="auth-error" class="hidden mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium"></div>
 
       <!-- Auth Form -->
@@ -169,7 +228,7 @@
       <div id="view-inventory" class="space-y-4">
         
         <!-- Controls Bar -->
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
           <div class="flex flex-col sm:flex-row gap-3 flex-1">
             <!-- Search -->
             <div class="relative flex-1 max-w-md">
@@ -188,9 +247,15 @@
             </select>
           </div>
 
-          <button onclick="openItemModal()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-blue-900/30 transition flex items-center justify-center gap-2 shrink-0">
-            <span>+ Add Item</span>
-          </button>
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="openPrintModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+              <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              <span>Print Report</span>
+            </button>
+            <button onclick="openItemModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-blue-900/30 transition flex items-center justify-center gap-2">
+              <span>+ Add Item</span>
+            </button>
+          </div>
         </div>
 
         <!-- Inventory Table -->
@@ -332,6 +397,99 @@
     </div>
   </div>
 
+  <!-- ==================== PRINT CUSTOMIZATION MODAL ==================== -->
+  <div id="print-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white">Customize Print Report</h3>
+          <p class="text-xs text-slate-400">Select which items and columns to include in your printout.</p>
+        </div>
+        <button onclick="closePrintModal()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="space-y-5">
+        <!-- Scope / Item Filters -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+          <p class="text-xs font-semibold uppercase tracking-wider text-blue-400">1. Filter Items to Print</p>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Category</label>
+              <select id="print-category" onchange="onPrintCategoryChange()"
+                class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-blue-500">
+                <option value="">All Categories</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Subcategory</label>
+              <select id="print-subcategory" onchange="updatePrintPreviewCount()"
+                class="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-blue-500">
+                <option value="">All Subcategories</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="flex items-center gap-2.5 pt-1 cursor-pointer">
+            <input type="checkbox" id="print-low-stock-only" onchange="updatePrintPreviewCount()"
+              class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+            <span class="text-xs text-slate-300">Only include low stock items (&lt; 10 units)</span>
+          </label>
+        </div>
+
+        <!-- Column / Field Selection -->
+        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-semibold uppercase tracking-wider text-blue-400">2. Select Fields (Columns)</p>
+            <button type="button" onclick="toggleAllPrintFields()" class="text-[11px] text-indigo-400 hover:text-indigo-300">Toggle All</button>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-2.5 text-xs text-slate-200">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="name" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span>Item Name</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="category" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span>Category</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="subcategory" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span>Subcategory</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="price" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span>Unit Price ($)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="quantity" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span>Quantity</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="total" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span>Total Value ($)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Preview Count & Action Buttons -->
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+          <span id="print-match-count" class="text-xs font-medium text-slate-400">0 items matched</span>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closePrintModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium transition">
+              Cancel
+            </button>
+            <button type="button" onclick="executePrint()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium shadow-lg shadow-blue-900/30 transition flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              <span>Generate &amp; Print</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== FIREBASE SDK & LOGIC ==================== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -346,7 +504,6 @@
       getFirestore, 
       collection, 
       doc, 
-      getDoc,
       setDoc,
       addDoc, 
       updateDoc, 
@@ -356,7 +513,7 @@
       orderBy
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Your Firebase Configuration (bapinv-78df7)
+    // Firebase Configuration (bapinv-78df7)
     const firebaseConfig = {
       apiKey: "AIzaSyC42Dtp0Oy3qVRvEAIuREqaFUvXNa-slpE",
       authDomain: "bapinv-78df7.firebaseapp.com",
@@ -367,7 +524,6 @@
       measurementId: "G-KSQ7SVTY0G"
     };
 
-    // Initialize Firebase & point to your named Firestore database ("items")
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app, "items");
@@ -380,7 +536,6 @@
     let unsubscribeCategories = null;
     let unsubscribeUserDoc = null;
 
-    // Default starter categories if database is brand new
     const defaultCategories = [
       { id: 'anodizing', name: 'Anodizing', subcategories: ['Type II Sulfuric', 'Type III Hardcoat', 'Dyes & Sealants'] },
       { id: 'electroplating', name: 'Electroplating', subcategories: ['Nickel', 'Zinc', 'Chrome', 'Copper'] },
@@ -429,11 +584,8 @@
         if (authMode === 'login') {
           await signInWithEmailAndPassword(auth, email, password);
         } else {
-          // 1. Create Auth Account
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-
-          // 2. Create pending user record in Firestore (approved: false)
           await setDoc(doc(db, 'users', user.uid), {
             email: user.email,
             approved: false,
@@ -446,8 +598,6 @@
           message = "Invalid email or password.";
         } else if (err.code === 'auth/email-already-in-use') {
           message = "An account with this email already exists. Please sign in.";
-        } else if (err.code === 'auth/operation-not-allowed') {
-          message = "Email/Password sign-in is not enabled yet in Firebase Console -> Authentication -> Sign-in method.";
         }
         showAuthError(message);
       } finally {
@@ -465,12 +615,9 @@
     onAuthStateChanged(auth, async (user) => {
       if (user) {
         document.getElementById('auth-screen').classList.add('hidden');
-        
-        // Listen to user's approval status in real-time
         const userDocRef = doc(db, 'users', user.uid);
         unsubscribeUserDoc = onSnapshot(userDocRef, async (docSnap) => {
           if (!docSnap.exists()) {
-            // If user record doesn't exist in Firestore yet, create it as pending
             await setDoc(userDocRef, {
               email: user.email,
               approved: false,
@@ -482,18 +629,15 @@
 
           const userData = docSnap.data();
           if (userData.approved === true) {
-            // User is approved! Show main dashboard
             document.getElementById('pending-screen').classList.add('hidden');
             document.getElementById('app-screen').classList.remove('hidden');
             document.getElementById('user-email-display').textContent = user.email;
             startRealtimeListeners();
           } else {
-            // User is pending approval
             document.getElementById('app-screen').classList.add('hidden');
             showPendingScreen(user.email);
           }
         });
-
       } else {
         if (unsubscribeItems) unsubscribeItems();
         if (unsubscribeCategories) unsubscribeCategories();
@@ -512,7 +656,8 @@
 
     // ==================== REAL-TIME FIRESTORE SYNC ====================
     function startRealtimeListeners() {
-      // 1. Listen to Categories collection
+      if (unsubscribeCategories) return;
+
       const catRef = collection(db, 'categories');
       unsubscribeCategories = onSnapshot(catRef, async (snapshot) => {
         if (snapshot.empty) {
@@ -535,7 +680,6 @@
         updateStats();
       });
 
-      // 2. Listen to Inventory Items collection
       const itemsRef = query(collection(db, 'inventory'), orderBy('name'));
       unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
         inventoryItems = snapshot.docs.map(docSnap => ({
@@ -633,6 +777,149 @@
           </tr>
         `;
       }).join('');
+    };
+
+    // ==================== PRINT REPORT BUILDER ====================
+    window.openPrintModal = () => {
+      const printCat = document.getElementById('print-category');
+      const currentMainCat = document.getElementById('filter-category').value;
+      const currentMainSub = document.getElementById('filter-subcategory').value;
+
+      const optionsHtml = categoriesData.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+      printCat.innerHTML = `<option value="">All Categories</option>` + optionsHtml;
+      printCat.value = currentMainCat;
+
+      onPrintCategoryChange(currentMainSub);
+      document.getElementById('print-modal').classList.remove('hidden');
+    };
+
+    window.closePrintModal = () => {
+      document.getElementById('print-modal').classList.add('hidden');
+    };
+
+    window.onPrintCategoryChange = (preselectSub = '') => {
+      const selectedCatName = document.getElementById('print-category').value;
+      const printSub = document.getElementById('print-subcategory');
+
+      const catObj = categoriesData.find(c => c.name === selectedCatName);
+      const subs = catObj && catObj.subcategories ? catObj.subcategories : [];
+
+      printSub.innerHTML = `<option value="">All Subcategories</option>` + 
+        subs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+
+      if (preselectSub && subs.includes(preselectSub)) {
+        printSub.value = preselectSub;
+      }
+      updatePrintPreviewCount();
+    };
+
+    window.toggleAllPrintFields = () => {
+      const checkboxes = document.querySelectorAll('input[name="print-col"]');
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      checkboxes.forEach(cb => cb.checked = !allChecked);
+    };
+
+    function getFilteredPrintItems() {
+      const cat = document.getElementById('print-category').value;
+      const sub = document.getElementById('print-subcategory').value;
+      const lowOnly = document.getElementById('print-low-stock-only').checked;
+
+      return inventoryItems.filter(item => {
+        const matchesCat = !cat || item.category === cat;
+        const matchesSub = !sub || item.subcategory === sub;
+        const matchesLow = !lowOnly || Number(item.quantity) < 10;
+        return matchesCat && matchesSub && matchesLow;
+      });
+    }
+
+    window.updatePrintPreviewCount = () => {
+      const matched = getFilteredPrintItems();
+      document.getElementById('print-match-count').textContent = `${matched.length} item${matched.length === 1 ? '' : 's'} matched`;
+    };
+
+    window.executePrint = () => {
+      const selectedCols = Array.from(document.querySelectorAll('input[name="print-col"]:checked')).map(cb => cb.value);
+      if (selectedCols.length === 0) {
+        alert("Please select at least one field (column) to print.");
+        return;
+      }
+
+      const itemsToPrint = getFilteredPrintItems();
+      if (itemsToPrint.length === 0) {
+        alert("No items match your selected filters.");
+        return;
+      }
+
+      const cat = document.getElementById('print-category').value;
+      const sub = document.getElementById('print-subcategory').value;
+      const lowOnly = document.getElementById('print-low-stock-only').checked;
+
+      // Set Print Header Metadata
+      const now = new Date();
+      document.getElementById('print-meta-date').textContent = `Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      
+      let filterLabel = cat ? `Category: ${cat}` : 'All Categories';
+      if (sub) filterLabel += ` > ${sub}`;
+      if (lowOnly) filterLabel += ' (Low Stock Only)';
+      document.getElementById('print-meta-filter').textContent = filterLabel;
+
+      // Build Table Header
+      const colDefinitions = {
+        name: { label: 'Item Name', align: 'text-left' },
+        category: { label: 'Category', align: 'text-left' },
+        subcategory: { label: 'Subcategory', align: 'text-left' },
+        price: { label: 'Unit Price', align: 'text-right' },
+        quantity: { label: 'Quantity', align: 'text-right' },
+        total: { label: 'Total Value', align: 'text-right' }
+      };
+
+      const theadHtml = `<tr>${selectedCols.map(col => `<th class="${colDefinitions[col].align}">${colDefinitions[col].label}</th>`).join('')}</tr>`;
+      document.getElementById('print-thead').innerHTML = theadHtml;
+
+      // Build Table Rows
+      let grandTotalValue = 0;
+      let totalQuantity = 0;
+
+      const tbodyHtml = itemsToPrint.map(item => {
+        const price = Number(item.price) || 0;
+        const qty = Number(item.quantity) || 0;
+        const total = price * qty;
+        grandTotalValue += total;
+        totalQuantity += qty;
+
+        const cells = selectedCols.map(col => {
+          if (col === 'name') return `<td class="text-left font-medium">${escapeHtml(item.name)}</td>`;
+          if (col === 'category') return `<td class="text-left">${escapeHtml(item.category)}</td>`;
+          if (col === 'subcategory') return `<td class="text-left">${escapeHtml(item.subcategory || '—')}</td>`;
+          if (col === 'price') return `<td class="text-right">$${price.toFixed(2)}</td>`;
+          if (col === 'quantity') return `<td class="text-right">${qty}</td>`;
+          if (col === 'total') return `<td class="text-right font-semibold">$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
+          return '';
+        }).join('');
+
+        return `<tr>${cells}</tr>`;
+      }).join('');
+
+      document.getElementById('print-tbody').innerHTML = tbodyHtml;
+
+      // Build Summary Footer if Quantity or Total Value is selected
+      const tfoot = document.getElementById('print-tfoot');
+      if (selectedCols.includes('total') || selectedCols.includes('quantity')) {
+        const footerCells = selectedCols.map((col, idx) => {
+          if (idx === 0) return `<td class="text-left font-bold bg-slate-100">TOTAL (${itemsToPrint.length} items)</td>`;
+          if (col === 'quantity') return `<td class="text-right font-bold bg-slate-100">${totalQuantity}</td>`;
+          if (col === 'total') return `<td class="text-right font-bold bg-slate-100">$${grandTotalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
+          return `<td class="bg-slate-100"></td>`;
+        }).join('');
+        tfoot.innerHTML = `<tr>${footerCells}</tr>`;
+      } else {
+        tfoot.innerHTML = '';
+      }
+
+      closePrintModal();
+      setTimeout(() => {
+        window.print();
+      }, 150);
     };
 
     // ==================== CATEGORY & SUBCATEGORY MANAGEMENT ====================
