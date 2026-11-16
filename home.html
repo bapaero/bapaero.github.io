@@ -27,7 +27,7 @@
       background: #475569;
     }
 
-    /* ==================== PRINT STYLES ==================== */
+    /* ==================== PRINT STYLES (MATCHING REFERENCE SHEET) ==================== */
     @media print {
       body {
         background-color: #ffffff !important;
@@ -46,23 +46,40 @@
         padding: 0 !important;
         margin: 0 !important;
       }
-      table {
+      #print-table {
         width: 100%;
         border-collapse: collapse;
         font-size: 12px;
+        color: #000000;
       }
-      th, td {
-        border: 1px solid #cbd5e1;
-        padding: 8px 10px;
+      #print-table th,
+      #print-table td {
+        border: 1px solid #000000;
+        padding: 7px 10px;
       }
-      th {
-        background-color: #f1f5f9 !important;
+      .print-group-header {
+        background-color: #a6a6a6 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
         font-weight: 700;
         text-transform: uppercase;
-        font-size: 10px;
-        letter-spacing: 0.05em;
+        font-size: 13px;
+        text-align: center;
+        letter-spacing: 0.04em;
+        color: #000000 !important;
+      }
+      .print-sub-header {
+        background-color: #efefef !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.03em;
+        color: #000000 !important;
+      }
+      .print-blank-row td {
+        height: 26px;
       }
     }
   </style>
@@ -70,15 +87,15 @@
 <body class="min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
 
   <!-- ==================== DEDICATED PRINT LAYOUT (HIDDEN ON SCREEN) ==================== -->
-  <div id="print-area" class="hidden bg-white text-black p-8">
-    <div class="border-b-2 border-slate-800 pb-4 mb-6 flex justify-between items-end">
+  <div id="print-area" class="hidden bg-white text-black p-6">
+    <div class="pb-3 mb-4 flex justify-between items-end">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900">BAP Inventory Report</h1>
-        <p class="text-sm font-medium text-slate-700">Barry Ave Plating Co. • Los Angeles, CA</p>
+        <h1 class="text-xl font-bold tracking-tight text-black">BAP Inventory Report</h1>
+        <p class="text-xs font-medium text-neutral-700">Barry Ave Plating Co. • Los Angeles, CA</p>
       </div>
-      <div class="text-right text-xs text-slate-600">
+      <div class="text-right text-xs text-neutral-700">
         <p id="print-meta-date"></p>
-        <p id="print-meta-filter" class="font-semibold text-slate-800 mt-0.5"></p>
+        <p id="print-meta-filter" class="font-semibold text-black mt-0.5"></p>
       </div>
     </div>
 
@@ -211,7 +228,7 @@
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
           <div class="flex flex-col sm:flex-row gap-3 flex-1">
             <div class="relative flex-1 max-w-md">
-              <input type="text" id="search-input" oninput="renderInventory()" placeholder="Search item name..."
+              <input type="text" id="search-input" oninput="renderInventory()" placeholder="Search item #, supplier, or name..."
                 class="w-full pl-3.5 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
             </div>
             <select id="filter-category" onchange="onFilterCategoryChange()"
@@ -235,23 +252,36 @@
           </div>
         </div>
 
+        <!-- Two-Tier Grouped Inventory Table -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
-                <tr class="border-b border-slate-800 bg-slate-950/60 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  <th class="py-3.5 px-4">Item Name</th>
-                  <th class="py-3.5 px-4">Category</th>
-                  <th class="py-3.5 px-4">Subcategory</th>
-                  <th class="py-3.5 px-4 text-right">Unit Price</th>
-                  <th class="py-3.5 px-4 text-right">Quantity</th>
-                  <th class="py-3.5 px-4 text-right">Total Value</th>
-                  <th class="py-3.5 px-4 text-right">Actions</th>
+                <!-- Top Group Header Banner (Matches Attached Sheet) -->
+                <tr class="border-b border-slate-700 text-xs font-bold uppercase tracking-wider text-center">
+                  <th colspan="2" class="py-2.5 px-4 bg-slate-800 text-slate-200 border-r border-slate-700">
+                    ITEM INFO
+                  </th>
+                  <th colspan="7" id="inventory-group-banner" class="py-2.5 px-4 bg-slate-800/80 text-blue-400">
+                    ALL INVENTORY
+                  </th>
+                </tr>
+                <!-- Column Sub-Headers -->
+                <tr class="border-b border-slate-800 bg-slate-950/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-4 border-r border-slate-800/70">Item #</th>
+                  <th class="py-3 px-4 border-r border-slate-700">Supplier</th>
+                  <th class="py-3 px-4">Name</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4">Subcategory</th>
+                  <th class="py-3 px-4 text-right">Unit Price</th>
+                  <th class="py-3 px-4 text-right">Qty</th>
+                  <th class="py-3 px-4 text-right">Total Value</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody id="inventory-tbody" class="divide-y divide-slate-800/70 text-sm">
                 <tr>
-                  <td colspan="7" class="py-12 text-center text-slate-500">Connecting to database...</td>
+                  <td colspan="9" class="py-12 text-center text-slate-500">Connecting to database...</td>
                 </tr>
               </tbody>
             </table>
@@ -264,7 +294,7 @@
         <div class="space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <h3 class="text-base font-semibold text-white mb-1">Add Category</h3>
-            <p class="text-xs text-slate-400 mb-4">Create a primary inventory group (e.g., Chemicals, Anodes, PPE).</p>
+            <p class="text-xs text-slate-400 mb-4">Create a primary inventory group (e.g., Chemicals, Anodes, Bags, PPE).</p>
             <form id="add-category-form" class="space-y-3">
               <input type="text" id="new-category-name" required placeholder="Category name..."
                 class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
@@ -317,9 +347,24 @@
       <form id="item-form" class="space-y-4">
         <input type="hidden" id="item-id" />
 
+        <!-- Item # and Supplier Row -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Item #</label>
+            <input type="text" id="item-number" placeholder="e.g., BAP-104"
+              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Supplier</label>
+            <input type="text" id="item-supplier" placeholder="e.g., Uline / McMaster"
+              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+          </div>
+        </div>
+
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Item Name *</label>
-          <input type="text" id="item-name" required placeholder="e.g., Nickel Sulfamate Concentrate"
+          <input type="text" id="item-name" required placeholder="e.g., 12x18 Poly Bags 4 Mil"
             class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
         </div>
 
@@ -348,6 +393,7 @@
               class="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
               <option value="Unit">Unit(s)</option>
               <option value="Case">Case(s)</option>
+              <option value="Bag">Bag(s)</option>
               <option value="Gallon">Gallon(s)</option>
               <option value="Pound">Pound(s)</option>
               <option value="Bottle">Bottle(s)</option>
@@ -411,11 +457,18 @@
               </select>
             </div>
           </div>
-          <label class="flex items-center gap-2.5 pt-1 cursor-pointer">
-            <input type="checkbox" id="print-low-stock-only" onchange="updatePrintPreviewCount()"
-              class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
-            <span class="text-xs text-slate-300">Only include low stock items (&lt; 10 units)</span>
-          </label>
+          <div class="space-y-2 pt-1">
+            <label class="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" id="print-low-stock-only" onchange="updatePrintPreviewCount()"
+                class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span class="text-xs text-slate-300">Only include low stock items (&lt; 10 units)</span>
+            </label>
+            <label class="flex items-center gap-2.5 cursor-pointer">
+              <input type="checkbox" id="print-blank-lines" checked
+                class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500" />
+              <span class="text-xs text-slate-300">Include extra blank write-in rows at bottom of sheet</span>
+            </label>
+          </div>
         </div>
 
         <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
@@ -426,27 +479,35 @@
           
           <div class="grid grid-cols-2 gap-2.5 text-xs text-slate-200">
             <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="itemNumber" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
+              <span>Item #</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="supplier" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
+              <span>Supplier</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" name="print-col" value="name" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
-              <span>Item Name</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="print-col" value="category" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
-              <span>Category</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="print-col" value="subcategory" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
-              <span>Subcategory</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="print-col" value="price" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
-              <span>Unit Price ($)</span>
+              <span>Name</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" name="print-col" value="quantity" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
-              <span>Quantity &amp; Unit</span>
+              <span>Qty &amp; Unit</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="print-col" value="total" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
+              <input type="checkbox" name="print-col" value="category" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
+              <span>Category</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="subcategory" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
+              <span>Subcategory</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="price" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
+              <span>Unit Price ($)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" name="print-col" value="total" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
               <span>Total Value ($)</span>
             </label>
           </div>
@@ -516,7 +577,7 @@
       { id: 'anodizing', name: 'Anodizing', subcategories: ['Type II Sulfuric', 'Type III Hardcoat', 'Dyes & Sealants'] },
       { id: 'electroplating', name: 'Electroplating', subcategories: ['Nickel', 'Zinc', 'Chrome', 'Copper'] },
       { id: 'chemicals', name: 'Acids & Cleaners', subcategories: ['Alkaline Cleaners', 'Nitric Acid', 'Deoxidizers'] },
-      { id: 'supplies', name: 'Shop & Rack Supplies', subcategories: ['Titanium Racks', 'Masking Tape', 'PPE'] }
+      { id: 'supplies', name: 'Shop & Rack Supplies', subcategories: ['Bags', 'Titanium Racks', 'Masking Tape', 'PPE'] }
     ];
 
     window.switchAuthTab = (mode) => {
@@ -702,8 +763,20 @@
       const catFilter = document.getElementById('filter-category').value;
       const subFilter = document.getElementById('filter-subcategory').value;
 
+      const groupBanner = document.getElementById('inventory-group-banner');
+      if (subFilter) {
+        groupBanner.textContent = subFilter.toUpperCase();
+      } else if (catFilter) {
+        groupBanner.textContent = catFilter.toUpperCase();
+      } else {
+        groupBanner.textContent = 'ALL INVENTORY';
+      }
+
       const filtered = inventoryItems.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(search);
+        const matchesSearch = 
+          (item.name || '').toLowerCase().includes(search) ||
+          (item.itemNumber || '').toLowerCase().includes(search) ||
+          (item.supplier || '').toLowerCase().includes(search);
         const matchesCat = !catFilter || item.category === catFilter;
         const matchesSub = !subFilter || item.subcategory === subFilter;
         return matchesSearch && matchesCat && matchesSub;
@@ -712,7 +785,7 @@
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" class="py-12 text-center text-slate-500">
+            <td colspan="9" class="py-12 text-center text-slate-500">
               No inventory items found. Click <span class="text-blue-400 font-medium">+ Add Item</span> to add stock.
             </td>
           </tr>
@@ -730,6 +803,8 @@
 
         return `
           <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3.5 px-4 font-mono text-xs text-slate-300 border-r border-slate-800/70">${escapeHtml(item.itemNumber || '—')}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-300 border-r border-slate-700/80">${escapeHtml(item.supplier || '—')}</td>
             <td class="py-3.5 px-4 font-medium text-white">${escapeHtml(item.name)}</td>
             <td class="py-3.5 px-4">
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
@@ -753,7 +828,6 @@
       }).join('');
     };
 
-    // ==================== PRINT REPORT BUILDER ====================
     window.openPrintModal = () => {
       const printCat = document.getElementById('print-category');
       const currentMainCat = document.getElementById('filter-category').value;
@@ -819,7 +893,9 @@
       }
 
       const itemsToPrint = getFilteredPrintItems();
-      if (itemsToPrint.length === 0) {
+      const includeBlankLines = document.getElementById('print-blank-lines').checked;
+
+      if (itemsToPrint.length === 0 && !includeBlankLines) {
         alert("No items match your selected filters.");
         return;
       }
@@ -836,21 +912,42 @@
       if (lowOnly) filterLabel += ' (Low Stock Only)';
       document.getElementById('print-meta-filter').textContent = filterLabel;
 
+      const rightBannerTitle = sub ? sub.toUpperCase() : (cat ? cat.toUpperCase() : 'INVENTORY ITEMS');
+
       const colDefinitions = {
-        name: { label: 'Item Name', align: 'text-left' },
-        category: { label: 'Category', align: 'text-left' },
-        subcategory: { label: 'Subcategory', align: 'text-left' },
-        price: { label: 'Unit Price', align: 'text-right' },
-        quantity: { label: 'Quantity & Unit', align: 'text-right' },
-        total: { label: 'Total Value', align: 'text-right' }
+        itemNumber: { label: 'ITEM #', align: 'text-center', group: 'info' },
+        supplier: { label: 'SUPPLIER', align: 'text-center', group: 'info' },
+        name: { label: 'NAME', align: 'text-center', group: 'item' },
+        category: { label: 'CATEGORY', align: 'text-center', group: 'item' },
+        subcategory: { label: 'SUBCATEGORY', align: 'text-center', group: 'item' },
+        price: { label: 'UNIT PRICE', align: 'text-right', group: 'item' },
+        quantity: { label: 'QTY', align: 'text-center', group: 'item' },
+        total: { label: 'TOTAL VALUE', align: 'text-right', group: 'item' }
       };
 
-      const theadHtml = `<tr>${selectedCols.map(col => `<th class="${colDefinitions[col].align}">${colDefinitions[col].label}</th>`).join('')}</tr>`;
-      document.getElementById('print-thead').innerHTML = theadHtml;
+      const infoColCount = selectedCols.filter(c => colDefinitions[c].group === 'info').length;
+      const itemColCount = selectedCols.filter(c => colDefinitions[c].group === 'item').length;
+
+      let topGroupRowHtml = '';
+      if (infoColCount > 0 && itemColCount > 0) {
+        topGroupRowHtml = `
+          <tr>
+            <th colspan="${infoColCount}" class="print-group-header">ITEM INFO</th>
+            <th colspan="${itemColCount}" class="print-group-header">${escapeHtml(rightBannerTitle)}</th>
+          </tr>
+        `;
+      } else if (infoColCount > 0) {
+        topGroupRowHtml = `<tr><th colspan="${infoColCount}" class="print-group-header">ITEM INFO</th></tr>`;
+      } else {
+        topGroupRowHtml = `<tr><th colspan="${itemColCount}" class="print-group-header">${escapeHtml(rightBannerTitle)}</th></tr>`;
+      }
+
+      const subHeaderRowHtml = `<tr>${selectedCols.map(col => `<th class="print-sub-header ${colDefinitions[col].align}">${colDefinitions[col].label}</th>`).join('')}</tr>`;
+      document.getElementById('print-thead').innerHTML = topGroupRowHtml + subHeaderRowHtml;
 
       let grandTotalValue = 0;
 
-      const tbodyHtml = itemsToPrint.map(item => {
+      let tbodyHtml = itemsToPrint.map(item => {
         const price = Number(item.price) || 0;
         const qty = Number(item.quantity) || 0;
         const unitType = item.unitType || 'Unit';
@@ -859,11 +956,13 @@
         const unitLabel = qty === 1 ? unitType : (unitType === 'Box' ? 'Boxes' : unitType + 's');
 
         const cells = selectedCols.map(col => {
+          if (col === 'itemNumber') return `<td class="text-center font-mono">${escapeHtml(item.itemNumber || '')}</td>`;
+          if (col === 'supplier') return `<td class="text-left">${escapeHtml(item.supplier || '')}</td>`;
           if (col === 'name') return `<td class="text-left font-medium">${escapeHtml(item.name)}</td>`;
           if (col === 'category') return `<td class="text-left">${escapeHtml(item.category)}</td>`;
-          if (col === 'subcategory') return `<td class="text-left">${escapeHtml(item.subcategory || '—')}</td>`;
+          if (col === 'subcategory') return `<td class="text-left">${escapeHtml(item.subcategory || '')}</td>`;
           if (col === 'price') return `<td class="text-right">$${price.toFixed(2)}</td>`;
-          if (col === 'quantity') return `<td class="text-right">${qty} ${unitLabel}</td>`;
+          if (col === 'quantity') return `<td class="text-center">${qty} ${unitLabel}</td>`;
           if (col === 'total') return `<td class="text-right font-semibold">$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
           return '';
         }).join('');
@@ -871,14 +970,22 @@
         return `<tr>${cells}</tr>`;
       }).join('');
 
+      if (includeBlankLines) {
+        const blankRowCount = Math.max(6, 16 - itemsToPrint.length);
+        const emptyCells = selectedCols.map(() => `<td>&nbsp;</td>`).join('');
+        for (let i = 0; i < blankRowCount; i++) {
+          tbodyHtml += `<tr class="print-blank-row">${emptyCells}</tr>`;
+        }
+      }
+
       document.getElementById('print-tbody').innerHTML = tbodyHtml;
 
       const tfoot = document.getElementById('print-tfoot');
-      if (selectedCols.includes('total')) {
+      if (selectedCols.includes('total') && itemsToPrint.length > 0) {
         const footerCells = selectedCols.map((col, idx) => {
-          if (idx === 0) return `<td class="text-left font-bold bg-slate-100">TOTAL (${itemsToPrint.length} items)</td>`;
-          if (col === 'total') return `<td class="text-right font-bold bg-slate-100">$${grandTotalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
-          return `<td class="bg-slate-100"></td>`;
+          if (idx === 0) return `<td class="text-left font-bold bg-neutral-100">TOTAL (${itemsToPrint.length} items)</td>`;
+          if (col === 'total') return `<td class="text-right font-bold bg-neutral-100">$${grandTotalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
+          return `<td class="bg-neutral-100"></td>`;
         }).join('');
         tfoot.innerHTML = `<tr>${footerCells}</tr>`;
       } else {
@@ -1040,6 +1147,8 @@
         if (item) {
           title.textContent = "Edit Inventory Item";
           document.getElementById('item-id').value = item.id;
+          document.getElementById('item-number').value = item.itemNumber || '';
+          document.getElementById('item-supplier').value = item.supplier || '';
           document.getElementById('item-name').value = item.name;
           document.getElementById('item-category').value = item.category;
           populateModalSubcategories(item.subcategory);
@@ -1064,6 +1173,8 @@
       e.preventDefault();
       const id = document.getElementById('item-id').value;
       const itemPayload = {
+        itemNumber: document.getElementById('item-number').value.trim(),
+        supplier: document.getElementById('item-supplier').value.trim(),
         name: document.getElementById('item-name').value.trim(),
         category: document.getElementById('item-category').value,
         subcategory: document.getElementById('item-subcategory').value,
