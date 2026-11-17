@@ -257,7 +257,7 @@
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead>
-                <!-- Top Group Header Banner (Matches Attached Sheet) -->
+                <!-- Top Group Header Banner -->
                 <tr class="border-b border-slate-700 text-xs font-bold uppercase tracking-wider text-center">
                   <th colspan="2" class="py-2.5 px-4 bg-slate-800 text-slate-200 border-r border-slate-700">
                     ITEM INFO
@@ -294,7 +294,7 @@
         <div class="space-y-6">
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <h3 class="text-base font-semibold text-white mb-1">Add Category</h3>
-            <p class="text-xs text-slate-400 mb-4">Create a primary inventory group (e.g., Chemicals, Anodes, Bags, PPE).</p>
+            <p class="text-xs text-slate-400 mb-4">Create a primary inventory group (e.g., Chemicals, Anodes, Al Wire, PPE).</p>
             <form id="add-category-form" class="space-y-3">
               <input type="text" id="new-category-name" required placeholder="Category name..."
                 class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
@@ -364,7 +364,7 @@
 
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Item Name *</label>
-          <input type="text" id="item-name" required placeholder="e.g., 12x18 Poly Bags 4 Mil"
+          <input type="text" id="item-name" required placeholder="e.g., Aluminum Wire Spool / Poly Bags"
             class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
         </div>
 
@@ -386,32 +386,68 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-3">
-          <div class="col-span-1">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
             <label class="block text-xs font-medium text-slate-300 mb-1">Unit Type *</label>
-            <select id="item-unit-type" required
-              class="w-full px-2.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-blue-500">
+            <select id="item-unit-type" required onchange="onUnitTypeChange()"
+              class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-blue-500">
               <option value="Unit">Unit(s)</option>
               <option value="Case">Case(s)</option>
+              <option value="Box">Box(es)</option>
+              <option value="Roll">Roll(s)</option>
               <option value="Bag">Bag(s)</option>
               <option value="Gallon">Gallon(s)</option>
               <option value="Pound">Pound(s)</option>
               <option value="Bottle">Bottle(s)</option>
               <option value="Drum">Drum(s)</option>
-              <option value="Roll">Roll(s)</option>
-              <option value="Box">Box(es)</option>
               <option value="Kit">Kit(s)</option>
             </select>
           </div>
-          <div class="col-span-1">
-            <label class="block text-xs font-medium text-slate-300 mb-1">Price ($) *</label>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Unit Price ($) *</label>
             <input type="number" id="item-price" required min="0" step="0.01" placeholder="0.00"
-              class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+              class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
           </div>
-          <div class="col-span-1">
-            <label class="block text-xs font-medium text-slate-300 mb-1">Qty *</label>
-            <input type="number" id="item-quantity" required min="0" step="1" placeholder="0"
-              class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <!-- Dynamic Packaging / Qty Fields -->
+        <div id="standard-qty-container">
+          <label class="block text-xs font-medium text-slate-300 mb-1">Quantity *</label>
+          <input type="number" id="item-quantity" min="0" step="1" placeholder="0"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <!-- Case / Box Sub-inputs -->
+        <div id="case-packaging-fields" class="hidden grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Number of Cases</label>
+            <input type="number" id="item-cases" min="0" step="1" placeholder="e.g., 5" oninput="calculateCaseTotal()"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Units per Case</label>
+            <input type="number" id="item-qty-per-case" min="1" step="1" placeholder="e.g., 12" oninput="calculateCaseTotal()"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+          </div>
+          <div class="col-span-2 text-[11px] text-blue-400 font-medium pt-1">
+            Total Calculated Units: <span id="case-total-display">0</span>
+          </div>
+        </div>
+
+        <!-- Roll Sub-inputs (Aluminum Wire / lbs per roll) -->
+        <div id="roll-packaging-fields" class="hidden grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800 rounded-xl">
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Number of Rolls</label>
+            <input type="number" id="item-rolls" min="0" step="1" placeholder="e.g., 3" oninput="calculateRollTotal()"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-slate-300 mb-1">Pounds per Roll (lbs/roll)</label>
+            <input type="number" id="item-lbs-per-roll" min="0" step="0.1" placeholder="e.g., 25.0" oninput="calculateRollTotal()"
+              class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
+          </div>
+          <div class="col-span-2 text-[11px] text-emerald-400 font-medium pt-1">
+            Total Calculated Weight: <span id="roll-total-display">0</span> lbs
           </div>
         </div>
 
@@ -492,7 +528,7 @@
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" name="print-col" value="quantity" checked class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
-              <span>Qty &amp; Unit</span>
+              <span>Qty, Cases &amp; Weight</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" name="print-col" value="category" class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600" />
@@ -577,7 +613,7 @@
       { id: 'anodizing', name: 'Anodizing', subcategories: ['Type II Sulfuric', 'Type III Hardcoat', 'Dyes & Sealants'] },
       { id: 'electroplating', name: 'Electroplating', subcategories: ['Nickel', 'Zinc', 'Chrome', 'Copper'] },
       { id: 'chemicals', name: 'Acids & Cleaners', subcategories: ['Alkaline Cleaners', 'Nitric Acid', 'Deoxidizers'] },
-      { id: 'supplies', name: 'Shop & Rack Supplies', subcategories: ['Bags', 'Titanium Racks', 'Masking Tape', 'PPE'] }
+      { id: 'supplies', name: 'Shop & Rack Supplies', subcategories: ['Bags', 'Aluminum Wire', 'Titanium Racks', 'Masking Tape', 'PPE'] }
     ];
 
     window.switchAuthTab = (mode) => {
@@ -799,7 +835,13 @@
         const unitType = item.unitType || 'Unit';
         const total = price * qty;
         const isLow = qty < 10;
-        const unitLabel = qty === 1 ? unitType : (unitType === 'Box' ? 'Boxes' : unitType + 's');
+
+        let displayQtyText = `${qty} ${qty === 1 ? unitType : (unitType === 'Box' ? 'Boxes' : unitType + 's')}`;
+        if ((unitType === 'Case' || unitType === 'Box') && item.cases !== undefined && item.qtyPerCase !== undefined) {
+          displayQtyText = `${item.cases} Cases (${item.qtyPerCase}/case) [${qty} Tot]`;
+        } else if (unitType === 'Roll' && item.rolls !== undefined && item.lbsPerRoll !== undefined) {
+          displayQtyText = `${item.rolls} Rolls (${item.lbsPerRoll} lbs/roll) [${qty} lbs]`;
+        }
 
         return `
           <tr class="hover:bg-slate-800/40 transition">
@@ -815,7 +857,7 @@
             <td class="py-3.5 px-4 text-right text-slate-300">$${price.toFixed(2)}</td>
             <td class="py-3.5 px-4 text-right">
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${isLow ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' : 'bg-emerald-500/10 text-emerald-400'}">
-                ${qty} ${unitLabel} ${isLow ? '• Low' : ''}
+                ${displayQtyText} ${isLow ? '• Low' : ''}
               </span>
             </td>
             <td class="py-3.5 px-4 text-right font-medium text-white">$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -921,7 +963,7 @@
         category: { label: 'CATEGORY', align: 'text-center', group: 'item' },
         subcategory: { label: 'SUBCATEGORY', align: 'text-center', group: 'item' },
         price: { label: 'UNIT PRICE', align: 'text-right', group: 'item' },
-        quantity: { label: 'QTY', align: 'text-center', group: 'item' },
+        quantity: { label: 'QTY / CASES / WT', align: 'text-center', group: 'item' },
         total: { label: 'TOTAL VALUE', align: 'text-right', group: 'item' }
       };
 
@@ -953,7 +995,13 @@
         const unitType = item.unitType || 'Unit';
         const total = price * qty;
         grandTotalValue += total;
-        const unitLabel = qty === 1 ? unitType : (unitType === 'Box' ? 'Boxes' : unitType + 's');
+
+        let displayQtyText = `${qty} ${qty === 1 ? unitType : (unitType === 'Box' ? 'Boxes' : unitType + 's')}`;
+        if ((unitType === 'Case' || unitType === 'Box') && item.cases !== undefined && item.qtyPerCase !== undefined) {
+          displayQtyText = `${item.cases} Cases (${item.qtyPerCase}/case)`;
+        } else if (unitType === 'Roll' && item.rolls !== undefined && item.lbsPerRoll !== undefined) {
+          displayQtyText = `${item.rolls} Rolls @ ${item.lbsPerRoll} lbs/roll (${qty} lbs)`;
+        }
 
         const cells = selectedCols.map(col => {
           if (col === 'itemNumber') return `<td class="text-center font-mono">${escapeHtml(item.itemNumber || '')}</td>`;
@@ -962,7 +1010,7 @@
           if (col === 'category') return `<td class="text-left">${escapeHtml(item.category)}</td>`;
           if (col === 'subcategory') return `<td class="text-left">${escapeHtml(item.subcategory || '')}</td>`;
           if (col === 'price') return `<td class="text-right">$${price.toFixed(2)}</td>`;
-          if (col === 'quantity') return `<td class="text-center">${qty} ${unitLabel}</td>`;
+          if (col === 'quantity') return `<td class="text-center">${displayQtyText}</td>`;
           if (col === 'total') return `<td class="text-right font-semibold">$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
           return '';
         }).join('');
@@ -1051,6 +1099,42 @@
       if (selectedSub) {
         modalSub.value = selectedSub;
       }
+    };
+
+    // Modal unit type conditional handling
+    window.onUnitTypeChange = () => {
+      const unitType = document.getElementById('item-unit-type').value;
+      const standardContainer = document.getElementById('standard-qty-container');
+      const caseFields = document.getElementById('case-packaging-fields');
+      const rollFields = document.getElementById('roll-packaging-fields');
+
+      caseFields.classList.add('hidden');
+      rollFields.classList.add('hidden');
+      standardContainer.classList.remove('hidden');
+
+      if (unitType === 'Case' || unitType === 'Box') {
+        caseFields.classList.remove('hidden');
+        standardContainer.classList.add('hidden');
+        calculateCaseTotal();
+      } else if (unitType === 'Roll') {
+        rollFields.classList.remove('hidden');
+        standardContainer.classList.add('hidden');
+        calculateRollTotal();
+      }
+    };
+
+    window.calculateCaseTotal = () => {
+      const cases = parseInt(document.getElementById('item-cases').value) || 0;
+      const qtyPerCase = parseInt(document.getElementById('item-qty-per-case').value) || 0;
+      const total = cases * qtyPerCase;
+      document.getElementById('case-total-display').textContent = total;
+    };
+
+    window.calculateRollTotal = () => {
+      const rolls = parseInt(document.getElementById('item-rolls').value) || 0;
+      const lbsPerRoll = parseFloat(document.getElementById('item-lbs-per-roll').value) || 0;
+      const totalLbs = rolls * lbsPerRoll;
+      document.getElementById('roll-total-display').textContent = totalLbs.toFixed(1);
     };
 
     document.getElementById('add-category-form').addEventListener('submit', async (e) => {
@@ -1154,7 +1238,16 @@
           populateModalSubcategories(item.subcategory);
           document.getElementById('item-unit-type').value = item.unitType || 'Unit';
           document.getElementById('item-price').value = item.price;
-          document.getElementById('item-quantity').value = item.quantity;
+          
+          if (item.unitType === 'Case' || item.unitType === 'Box') {
+            document.getElementById('item-cases').value = item.cases || '';
+            document.getElementById('item-qty-per-case').value = item.qtyPerCase || '';
+          } else if (item.unitType === 'Roll') {
+            document.getElementById('item-rolls').value = item.rolls || '';
+            document.getElementById('item-lbs-per-roll').value = item.lbsPerRoll || '';
+          } else {
+            document.getElementById('item-quantity').value = item.quantity;
+          }
         }
       } else {
         title.textContent = "Add Inventory Item";
@@ -1162,6 +1255,7 @@
         populateModalSubcategories();
       }
 
+      onUnitTypeChange();
       modal.classList.remove('hidden');
     };
 
@@ -1172,15 +1266,39 @@
     document.getElementById('item-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('item-id').value;
+      const unitType = document.getElementById('item-unit-type').value;
+
+      let quantity = 0;
+      let cases = null;
+      let qtyPerCase = null;
+      let rolls = null;
+      let lbsPerRoll = null;
+
+      if (unitType === 'Case' || unitType === 'Box') {
+        cases = parseInt(document.getElementById('item-cases').value) || 0;
+        qtyPerCase = parseInt(document.getElementById('item-qty-per-case').value) || 0;
+        quantity = cases * qtyPerCase;
+      } else if (unitType === 'Roll') {
+        rolls = parseInt(document.getElementById('item-rolls').value) || 0;
+        lbsPerRoll = parseFloat(document.getElementById('item-lbs-per-roll').value) || 0;
+        quantity = rolls * lbsPerRoll; // Total weight in lbs
+      } else {
+        quantity = parseInt(document.getElementById('item-quantity').value, 10) || 0;
+      }
+
       const itemPayload = {
         itemNumber: document.getElementById('item-number').value.trim(),
         supplier: document.getElementById('item-supplier').value.trim(),
         name: document.getElementById('item-name').value.trim(),
         category: document.getElementById('item-category').value,
         subcategory: document.getElementById('item-subcategory').value,
-        unitType: document.getElementById('item-unit-type').value,
+        unitType: unitType,
         price: parseFloat(document.getElementById('item-price').value),
-        quantity: parseInt(document.getElementById('item-quantity').value, 10),
+        quantity: quantity,
+        cases: cases,
+        qtyPerCase: qtyPerCase,
+        rolls: rolls,
+        lbsPerRoll: lbsPerRoll,
         updatedAt: new Date().toISOString()
       };
 
