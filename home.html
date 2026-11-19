@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BAP Inventory | Barry Ave Plating Co.</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     body {
@@ -244,12 +245,16 @@
             </select>
           </div>
 
-          <div class="flex items-center gap-2 shrink-0">
-            <button onclick="openPrintModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button type="button" onclick="exportInventoryToExcel()" class="flex-1 sm:flex-initial px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
+              <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              <span>Export Excel</span>
+            </button>
+            <button type="button" onclick="openPrintModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium rounded-xl border border-slate-700 transition flex items-center justify-center gap-2">
               <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
               <span>Print Report</span>
             </button>
-            <button onclick="openItemModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-blue-900/30 transition flex items-center justify-center gap-2">
+            <button type="button" onclick="openItemModal()" class="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-blue-900/30 transition flex items-center justify-center gap-2">
               <span>+ Add Item</span>
             </button>
           </div>
@@ -780,6 +785,152 @@
       }
     }
 
+    function getCurrentFilteredInventoryItems() {
+      const search = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+      const catFilter = document.getElementById('filter-category')?.value || '';
+      const subFilter = document.getElementById('filter-subcategory')?.value || '';
+
+      return inventoryItems.filter(item => {
+        const matchesSearch =
+          (item.name || '').toLowerCase().includes(search) ||
+          (item.itemNumber || '').toLowerCase().includes(search) ||
+          (item.supplier || '').toLowerCase().includes(search);
+        const matchesCat = !catFilter || item.category === catFilter;
+        const matchesSub = !subFilter || item.subcategory === subFilter;
+        return matchesSearch && matchesCat && matchesSub;
+      });
+    }
+
+    window.exportInventoryToExcel = async () => {
+      if (typeof XLSX === 'undefined') {
+        alert("Excel export library failed to load. Please check your internet connection and try again.");
+        return;
+      }
+
+      const items = getCurrentFilteredInventoryItems();
+      if (items.length === 0) {
+        alert("No inventory items available to export.");
+        return;
+      }
+
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const catFilter = document.getElementById('filter-category')?.value || 'All Categories';
+      const subFilter = document.getElementById('filter-subcategory')?.value || 'All Subcategories';
+
+      const rows = [
+        ["Barry Ave Plating Co. — Inventory Export"],
+        [`Exported: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, `Filter: ${catFilter} / ${subFilter}`],
+        [],
+        [
+          "Item #",
+          "Supplier",
+          "Name",
+          "Category",
+          "Subcategory",
+          "Unit Type",
+          "Qty / Breakdown",
+          "Stock Qty",
+          "Min Qty",
+          "Stock Status",
+          "Unit Price ($)",
+          "Total Value ($)"
+        ]
+      ];
+
+      const headerRowNumber = 4;
+      const firstDataRow = headerRowNumber + 1;
+
+      items.forEach((item, idx) => {
+        const excelRow = firstDataRow + idx;
+        const qty = Number(item.quantity) || 0;
+        const minQty = Number(item.minQty ?? 10) || 0;
+        const price = Number(item.price) || 0;
+
+        rows.push([
+          item.itemNumber || "",
+          item.supplier || "",
+          item.name || "",
+          item.category || "",
+          item.subcategory || "",
+          item.unitType || "Unit",
+          formatItemQtyDisplay(item, true),
+          qty,
+          minQty,
+          { f: `IF(H${excelRow}<I${excelRow},"LOW STOCK","OK")` },
+          price,
+          { f: `H${excelRow}*K${excelRow}` }
+        ]);
+      });
+
+      const lastDataRow = firstDataRow + items.length - 1;
+      const totalRow = lastDataRow + 1;
+
+      rows.push([
+        `TOTAL (${items.length} items)`,
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        { f: `SUM(H${firstDataRow}:H${lastDataRow})` },
+        "",
+        "",
+        "",
+        { f: `SUM(L${firstDataRow}:L${lastDataRow})` }
+      ]);
+
+      const wsInventory = XLSX.utils.aoa_to_sheet(rows);
+      wsInventory["!cols"] = [
+        { wch: 14 },
+        { wch: 20 },
+        { wch: 30 },
+        { wch: 18 },
+        { wch: 20 },
+        { wch: 12 },
+        { wch: 32 },
+        { wch: 12 },
+        { wch: 10 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 16 }
+      ];
+
+      const lowStockCount = items.filter(i => (Number(i.quantity) || 0) < (Number(i.minQty ?? 10) || 0)).length;
+      const totalValue = items.reduce((sum, i) => sum + ((Number(i.price) || 0) * (Number(i.quantity) || 0)), 0);
+
+      const summaryRows = [
+        ["Barry Ave Plating Co. — Inventory Summary"],
+        [`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`],
+        [],
+        ["Metric", "Value"],
+        ["Exported Line Items", items.length],
+        ["Low Stock Items (< Min Qty)", lowStockCount],
+        ["Total Stock Value ($)", Number(totalValue.toFixed(2))]
+      ];
+
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+      wsSummary["!cols"] = [
+        { wch: 28 },
+        { wch: 22 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsInventory, "Inventory");
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+      const filename = `BAP_Inventory_${dateStr}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      await writeActivityLog({
+        type: 'inventory',
+        action: 'Exported Excel',
+        target: filename,
+        details: `Exported ${items.length} inventory item(s) to editable .xlsx spreadsheet (${catFilter} / ${subFilter})`
+      });
+    };
+
     window.switchAuthTab = (mode) => {
       authMode = mode;
       const loginTab = document.getElementById('tab-login');
@@ -1186,7 +1337,7 @@
 
     window.renderInventory = () => {
       const tbody = document.getElementById('inventory-tbody');
-      const search = document.getElementById('search-input').value.toLowerCase().trim();
+      const filtered = getCurrentFilteredInventoryItems();
       const catFilter = document.getElementById('filter-category').value;
       const subFilter = document.getElementById('filter-subcategory').value;
 
@@ -1198,16 +1349,6 @@
       } else {
         groupBanner.textContent = 'ALL INVENTORY';
       }
-
-      const filtered = inventoryItems.filter(item => {
-        const matchesSearch = 
-          (item.name || '').toLowerCase().includes(search) ||
-          (item.itemNumber || '').toLowerCase().includes(search) ||
-          (item.supplier || '').toLowerCase().includes(search);
-        const matchesCat = !catFilter || item.category === catFilter;
-        const matchesSub = !subFilter || item.subcategory === subFilter;
-        return matchesSearch && matchesCat && matchesSub;
-      });
 
       if (filtered.length === 0) {
         tbody.innerHTML = `
