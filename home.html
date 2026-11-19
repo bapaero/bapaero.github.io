@@ -37,7 +37,8 @@
       #pending-screen,
       #app-screen,
       #item-modal,
-      #print-modal {
+      #print-modal,
+      #log-auth-modal {
         display: none !important;
       }
       #print-area {
@@ -127,7 +128,7 @@
         </button>
       </div>
 
-      <div id="auth-error" class="hidden mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium"></div>
+      <div id="auth-error" class="hidden mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium"></div>
 
       <form id="auth-form" class="space-y-4">
         <div>
@@ -151,8 +152,8 @@
   <!-- ==================== PENDING APPROVAL SCREEN ==================== -->
   <div id="pending-screen" class="hidden min-h-screen flex items-center justify-center p-4 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#090d16] to-[#090d16]">
     <div class="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl p-8 text-center backdrop-blur-sm">
-      <div class="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/30 flex items-center justify-center mx-auto mb-4 text-orange-400 text-2xl">
-        ⏳
+      <div class="w-16 h-16 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center mx-auto mb-4 text-sky-400 text-2xl">
+        ...
       </div>
       <h2 class="text-xl font-bold text-white mb-2">Account Pending Approval</h2>
       <p class="text-sm text-slate-400 mb-6">Your registration has been recorded. An administrator must approve your account before you can access the BAP Inventory dashboard.</p>
@@ -170,9 +171,11 @@
     <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center border border-blue-400/20 shadow">
-            <span class="text-sm font-extrabold text-white">BAP</span>
-          </div>
+          <!-- HIDDEN TRIGGER SPOT: Top-left square "BAP" logo badge -->
+          <button type="button" id="secret-log-trigger" onclick="handleSecretLogSpotClick()"
+            class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center border border-blue-400/20 shadow cursor-pointer focus:outline-none">
+            <span class="text-sm font-extrabold text-white select-none">BAP</span>
+          </button>
           <div>
             <div class="flex items-center gap-2">
               <span class="font-bold text-white tracking-tight">BAP Inventory</span>
@@ -215,7 +218,7 @@
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <p class="text-xs font-medium text-slate-400">Low Stock Alerts (&lt; Min Qty)</p>
-          <p id="stat-low-stock" class="text-2xl font-bold text-orange-400 mt-1">0</p>
+          <p id="stat-low-stock" class="text-2xl font-bold text-sky-400 mt-1">0</p>
         </div>
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
           <p class="text-xs font-medium text-slate-400">Active Categories</p>
@@ -334,7 +337,114 @@
           </div>
         </div>
       </div>
+
+      <!-- ==================== HIDDEN ACTIVITY & AUTH LOG VIEW ==================== -->
+      <div id="view-logs" class="hidden space-y-5">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <h3 class="text-lg font-bold text-white">Session &amp; Change Audit Log</h3>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                PROTECTED VIEW
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Tracks active session, sign-in/sign-out history, and all inventory or category changes by user.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="log-filter-type" onchange="renderLogsView()"
+              class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+              <option value="all">All Events</option>
+              <option value="auth">Sign In / Sign Out</option>
+              <option value="inventory">Inventory Changes</option>
+              <option value="category">Category Changes</option>
+            </select>
+            <button type="button" onclick="lockAndHideLogs()"
+              class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition">
+              Lock &amp; Return to Inventory
+            </button>
+          </div>
+        </div>
+
+        <!-- Currently Logged In Card -->
+        <div class="bg-slate-900 border border-blue-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="w-2.5 h-2.5 rounded-full bg-blue-400 shrink-0"></span>
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-blue-400">Currently Logged In</p>
+              <p id="active-session-user" class="text-sm font-semibold text-white mt-0.5">—</p>
+            </div>
+          </div>
+          <div class="text-xs text-slate-400">
+            Session Started: <span id="active-session-time" class="text-slate-200 font-medium">—</span>
+          </div>
+        </div>
+
+        <!-- Audit Log Table -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 bg-slate-950/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-4">Timestamp</th>
+                  <th class="py-3 px-4">User</th>
+                  <th class="py-3 px-4">Action</th>
+                  <th class="py-3 px-4">Target</th>
+                  <th class="py-3 px-4">Change Details</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody" class="divide-y divide-slate-800/70 text-xs">
+                <tr>
+                  <td colspan="5" class="py-10 text-center text-slate-500">Loading activity logs...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </main>
+  </div>
+
+  <!-- ==================== HIDDEN LOG ACCESS LOGIN MODAL ==================== -->
+  <div id="log-auth-modal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Audit Log Login</h3>
+            <p class="text-[11px] text-slate-400">Verify credentials to open activity logs</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeLogAuthModal()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div id="log-auth-error" class="hidden mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-medium"></div>
+
+      <form id="log-auth-form" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Owner Email</label>
+          <input type="email" id="log-auth-email" required placeholder="your-email@example.com"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+          <input type="password" id="log-auth-password" required placeholder="••••••••"
+            class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeLogAuthModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition">
+            Cancel
+          </button>
+          <button type="submit" id="log-auth-submit-btn" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium shadow-lg shadow-blue-900/30 transition">
+            Unlock Audit Log
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- ==================== ADD / EDIT ITEM MODAL ==================== -->
@@ -450,7 +560,7 @@
         </div>
 
         <!-- Roll Sub-inputs (Aluminum Wire / lbs per roll) -->
-        <div id="roll-packaging-fields" class="hidden grid grid-cols-2 gap-3 p-3.5 bg-slate-950 border border-emerald-500/30 rounded-xl">
+        <div id="roll-packaging-fields" class="hidden grid grid-cols-2 gap-3 p-3.5 bg-slate-950 border border-sky-500/30 rounded-xl">
           <div>
             <label class="block text-[11px] font-medium text-slate-300 mb-1">Number of Rolls *</label>
             <input type="number" id="item-rolls" min="0" step="1" placeholder="e.g., 3" oninput="calculateRollTotal()"
@@ -461,7 +571,7 @@
             <input type="number" id="item-lbs-per-roll" min="0" step="0.01" placeholder="e.g., 25.0" oninput="calculateRollTotal()"
               class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500" />
           </div>
-          <div class="col-span-2 text-xs text-emerald-400 font-semibold pt-1 flex items-center justify-between border-t border-slate-800/80">
+          <div class="col-span-2 text-xs text-sky-400 font-semibold pt-1 flex items-center justify-between border-t border-slate-800/80">
             <span>Total Calculated Weight:</span>
             <span class="text-sm text-white"><span id="roll-total-display">0</span> lbs</span>
           </div>
@@ -599,13 +709,15 @@
       getFirestore, 
       collection, 
       doc, 
+      getDoc,
       setDoc,
       addDoc, 
       updateDoc, 
       deleteDoc, 
       onSnapshot,
       query,
-      orderBy
+      orderBy,
+      limit
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -622,11 +734,25 @@
     const auth = getAuth(app);
     const db = getFirestore(app, "items");
 
+    // Secondary Firebase app instance used solely to verify Audit Log login credentials
+    // without disrupting the active operator session.
+    const logVerifyApp = initializeApp(firebaseConfig, "logVerifyInstance");
+    const logVerifyAuth = getAuth(logVerifyApp);
+
+    // Replace with your own email address so only you can unlock the Audit Log
+    const AUDIT_LOG_OWNER_EMAIL = "your-email@example.com";
+
     let authMode = 'login';
+    let currentUser = null;
+    let sessionStartedAt = null;
+    let lastLoggedSessionUid = null;
+    let isAuditLogUnlocked = false;
     let inventoryItems = [];
     let categoriesData = [];
+    let activityLogs = [];
     let unsubscribeItems = null;
     let unsubscribeCategories = null;
+    let unsubscribeLogs = null;
     let unsubscribeUserDoc = null;
 
     const defaultCategories = [
@@ -635,6 +761,24 @@
       { id: 'chemicals', name: 'Acids & Cleaners', subcategories: ['Alkaline Cleaners', 'Nitric Acid', 'Deoxidizers'] },
       { id: 'supplies', name: 'Shop & Rack Supplies', subcategories: ['Bags', 'Aluminum Wire', 'Titanium Racks', 'Masking Tape', 'PPE'] }
     ];
+
+    async function writeActivityLog({ type, action, target, details, actorOverride = null }) {
+      const actorEmail = actorOverride || currentUser?.email || auth.currentUser?.email || 'Unknown User';
+      const actorUid = currentUser?.uid || auth.currentUser?.uid || 'unknown';
+      try {
+        await addDoc(collection(db, 'activityLogs'), {
+          type,
+          action,
+          target,
+          details,
+          userEmail: actorEmail,
+          userId: actorUid,
+          timestamp: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error("Failed to write activity log:", err);
+      }
+    }
 
     window.switchAuthTab = (mode) => {
       authMode = mode;
@@ -698,16 +842,34 @@
     });
 
     window.handleLogout = async () => {
-      if (unsubscribeItems) unsubscribeItems();
-      if (unsubscribeCategories) unsubscribeCategories();
-      if (unsubscribeUserDoc) unsubscribeUserDoc();
+      if (currentUser) {
+        await writeActivityLog({
+          type: 'auth',
+          action: 'Logged Out',
+          target: currentUser.email,
+          details: 'User signed out of BAP Inventory'
+        });
+      }
+      if (unsubscribeItems) { unsubscribeItems(); unsubscribeItems = null; }
+      if (unsubscribeCategories) { unsubscribeCategories(); unsubscribeCategories = null; }
+      if (unsubscribeLogs) { unsubscribeLogs(); unsubscribeLogs = null; }
+      if (unsubscribeUserDoc) { unsubscribeUserDoc(); unsubscribeUserDoc = null; }
+      isAuditLogUnlocked = false;
+      lastLoggedSessionUid = null;
+      sessionStartedAt = null;
+      currentUser = null;
       await signOut(auth);
     };
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
+        currentUser = user;
+        if (!sessionStartedAt) {
+          sessionStartedAt = new Date().toISOString();
+        }
         document.getElementById('auth-screen').classList.add('hidden');
         const userDocRef = doc(db, 'users', user.uid);
+        if (unsubscribeUserDoc) unsubscribeUserDoc();
         unsubscribeUserDoc = onSnapshot(userDocRef, async (docSnap) => {
           if (!docSnap.exists()) {
             await setDoc(userDocRef, {
@@ -724,16 +886,32 @@
             document.getElementById('pending-screen').classList.add('hidden');
             document.getElementById('app-screen').classList.remove('hidden');
             document.getElementById('user-email-display').textContent = user.email;
+            updateActiveSessionBanner();
             startRealtimeListeners();
+
+            if (lastLoggedSessionUid !== user.uid) {
+              lastLoggedSessionUid = user.uid;
+              await writeActivityLog({
+                type: 'auth',
+                action: 'Logged In',
+                target: user.email,
+                details: 'Authenticated session started'
+              });
+            }
           } else {
             document.getElementById('app-screen').classList.add('hidden');
             showPendingScreen(user.email);
           }
         });
       } else {
-        if (unsubscribeItems) unsubscribeItems();
-        if (unsubscribeCategories) unsubscribeCategories();
-        if (unsubscribeUserDoc) unsubscribeUserDoc();
+        if (unsubscribeItems) { unsubscribeItems(); unsubscribeItems = null; }
+        if (unsubscribeCategories) { unsubscribeCategories(); unsubscribeCategories = null; }
+        if (unsubscribeLogs) { unsubscribeLogs(); unsubscribeLogs = null; }
+        if (unsubscribeUserDoc) { unsubscribeUserDoc(); unsubscribeUserDoc = null; }
+        isAuditLogUnlocked = false;
+        currentUser = null;
+        sessionStartedAt = null;
+        lastLoggedSessionUid = null;
         document.getElementById('app-screen').classList.add('hidden');
         document.getElementById('pending-screen').classList.add('hidden');
         document.getElementById('auth-screen').classList.remove('hidden');
@@ -746,60 +924,232 @@
       document.getElementById('pending-screen').classList.remove('hidden');
     }
 
+    function updateActiveSessionBanner() {
+      const userEl = document.getElementById('active-session-user');
+      const timeEl = document.getElementById('active-session-time');
+      if (currentUser) {
+        userEl.textContent = `${currentUser.email} (${currentUser.uid.slice(0, 8)}...)`;
+      } else {
+        userEl.textContent = '—';
+      }
+      if (sessionStartedAt) {
+        timeEl.textContent = formatTimestamp(sessionStartedAt);
+      } else {
+        timeEl.textContent = '—';
+      }
+    }
+
     function startRealtimeListeners() {
-      if (unsubscribeCategories) return;
-
-      const catRef = collection(db, 'categories');
-      unsubscribeCategories = onSnapshot(catRef, async (snapshot) => {
-        if (snapshot.empty) {
-          for (const cat of defaultCategories) {
-            await setDoc(doc(db, 'categories', cat.id), {
-              name: cat.name,
-              subcategories: cat.subcategories
-            });
+      if (!unsubscribeCategories) {
+        const catRef = collection(db, 'categories');
+        unsubscribeCategories = onSnapshot(catRef, async (snapshot) => {
+          if (snapshot.empty) {
+            for (const cat of defaultCategories) {
+              await setDoc(doc(db, 'categories', cat.id), {
+                name: cat.name,
+                subcategories: cat.subcategories
+              });
+            }
+            return;
           }
-          return;
-        }
 
-        categoriesData = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        })).sort((a, b) => a.name.localeCompare(b.name));
+          categoriesData = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          })).sort((a, b) => a.name.localeCompare(b.name));
 
-        populateCategoryDropdowns();
-        renderCategoriesView();
-        updateStats();
-      });
+          populateCategoryDropdowns();
+          renderCategoriesView();
+          updateStats();
+        });
+      }
 
-      const itemsRef = query(collection(db, 'inventory'), orderBy('name'));
-      unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
-        inventoryItems = snapshot.docs.map(docSnap => ({
-          id: docSnap.id,
-          ...docSnap.data()
-        }));
+      if (!unsubscribeItems) {
+        const itemsRef = query(collection(db, 'inventory'), orderBy('name'));
+        unsubscribeItems = onSnapshot(itemsRef, (snapshot) => {
+          inventoryItems = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          }));
 
-        renderInventory();
-        updateStats();
-      });
+          renderInventory();
+          updateStats();
+        });
+      }
+
+      if (!unsubscribeLogs) {
+        const logsRef = query(collection(db, 'activityLogs'), orderBy('timestamp', 'desc'), limit(200));
+        unsubscribeLogs = onSnapshot(logsRef, (snapshot) => {
+          activityLogs = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+          }));
+          renderLogsView();
+        });
+      }
     }
 
     window.switchView = (view) => {
       const invView = document.getElementById('view-inventory');
       const catView = document.getElementById('view-categories');
+      const logsView = document.getElementById('view-logs');
       const navInv = document.getElementById('nav-inventory');
       const navCat = document.getElementById('nav-categories');
 
+      if (view === 'logs' && !isAuditLogUnlocked) {
+        openLogAuthModal();
+        return;
+      }
+
+      invView.classList.add('hidden');
+      catView.classList.add('hidden');
+      logsView.classList.add('hidden');
+
+      navInv.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition";
+      navCat.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition";
+
       if (view === 'inventory') {
         invView.classList.remove('hidden');
-        catView.classList.add('hidden');
         navInv.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white transition";
-        navCat.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition";
-      } else {
+      } else if (view === 'categories') {
         catView.classList.remove('hidden');
-        invView.classList.add('hidden');
         navCat.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white transition";
-        navInv.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition";
+      } else if (view === 'logs') {
+        logsView.classList.remove('hidden');
+        updateActiveSessionBanner();
+        renderLogsView();
       }
+    };
+
+    // ==================== HIDDEN SPOT & OWNER LOGIN PROTECTION ====================
+    window.handleSecretLogSpotClick = () => {
+      const logsView = document.getElementById('view-logs');
+      if (!logsView.classList.contains('hidden')) {
+        lockAndHideLogs();
+        return;
+      }
+      if (isAuditLogUnlocked) {
+        switchView('logs');
+      } else {
+        openLogAuthModal();
+      }
+    };
+
+    window.openLogAuthModal = () => {
+      const modal = document.getElementById('log-auth-modal');
+      const errorEl = document.getElementById('log-auth-error');
+      document.getElementById('log-auth-form').reset();
+      errorEl.classList.add('hidden');
+      if (currentUser?.email) {
+        document.getElementById('log-auth-email').value = currentUser.email;
+      }
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        document.getElementById('log-auth-password').focus();
+      }, 50);
+    };
+
+    window.closeLogAuthModal = () => {
+      document.getElementById('log-auth-modal').classList.add('hidden');
+    };
+
+    window.lockAndHideLogs = () => {
+      isAuditLogUnlocked = false;
+      switchView('inventory');
+    };
+
+    document.getElementById('log-auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('log-auth-email').value.trim();
+      const password = document.getElementById('log-auth-password').value;
+      const errorEl = document.getElementById('log-auth-error');
+      const submitBtn = document.getElementById('log-auth-submit-btn');
+
+      errorEl.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Verifying...';
+
+      try {
+        const cred = await signInWithEmailAndPassword(logVerifyAuth, email, password);
+        const userSnap = await getDoc(doc(db, 'users', cred.user.uid));
+        await signOut(logVerifyAuth);
+
+        const matchedOwner = (cred.user.email || '').toLowerCase() === AUDIT_LOG_OWNER_EMAIL.trim().toLowerCase();
+        if (!userSnap.exists() || userSnap.data().approved !== true || !matchedOwner) {
+          errorEl.textContent = 'Access denied: this audit log is restricted to the site owner.';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+
+        isAuditLogUnlocked = true;
+        closeLogAuthModal();
+        await writeActivityLog({
+          type: 'auth',
+          action: 'Audit Log Accessed',
+          target: cred.user.email,
+          details: 'Verified owner login credentials to view hidden Session & Change Audit Log',
+          actorOverride: cred.user.email
+        });
+        switchView('logs');
+      } catch (err) {
+        errorEl.textContent = 'Invalid email or password.';
+        errorEl.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Unlock Audit Log';
+      }
+    });
+
+    function formatTimestamp(isoString) {
+      if (!isoString) return '—';
+      const d = new Date(isoString);
+      if (Number.isNaN(d.getTime())) return isoString;
+      return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+    }
+
+    window.renderLogsView = () => {
+      const tbody = document.getElementById('logs-tbody');
+      if (!tbody) return;
+
+      const filterType = document.getElementById('log-filter-type')?.value || 'all';
+      const filteredLogs = activityLogs.filter(entry => {
+        if (filterType === 'all') return true;
+        return entry.type === filterType;
+      });
+
+      if (filteredLogs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-10 text-center text-slate-500">No logged activity for this filter yet.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filteredLogs.map(entry => {
+        let badgeClass = 'bg-slate-800 text-slate-300 border-slate-700';
+        if (entry.type === 'auth') {
+          badgeClass = 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+        } else if (entry.type === 'inventory') {
+          badgeClass = 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+        } else if (entry.type === 'category') {
+          badgeClass = 'bg-sky-500/10 text-sky-400 border-sky-500/20';
+        }
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-4 text-slate-400 whitespace-nowrap font-mono text-[11px]">${escapeHtml(formatTimestamp(entry.timestamp))}</td>
+            <td class="py-3 px-4 font-medium text-white whitespace-nowrap">${escapeHtml(entry.userEmail || 'Unknown')}</td>
+            <td class="py-3 px-4 whitespace-nowrap">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border ${badgeClass}">
+                ${escapeHtml(entry.action || 'Event')}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-slate-200 font-medium">${escapeHtml(entry.target || '—')}</td>
+            <td class="py-3 px-4 text-slate-300">${escapeHtml(entry.details || '—')}</td>
+          </tr>
+        `;
+      }).join('');
     };
 
     function updateStats() {
@@ -891,7 +1241,7 @@
             <td class="py-3.5 px-4 text-slate-300 text-xs">${escapeHtml(item.subcategory || '—')}</td>
             <td class="py-3.5 px-4 text-right text-slate-300">$${price.toFixed(2)}</td>
             <td class="py-3.5 px-4 text-right">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${isLow ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30' : 'bg-emerald-500/10 text-emerald-400'}">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${isLow ? 'bg-sky-500/15 text-sky-300 border border-sky-400/30' : 'bg-blue-500/10 text-blue-300'}">
                 ${displayQtyText} ${isLow ? '• Low' : ''}
               </span>
             </td>
@@ -899,7 +1249,7 @@
             <td class="py-3.5 px-4 text-right font-medium text-white">$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             <td class="py-3.5 px-4 text-right space-x-2">
               <button onclick="openItemModal('${item.id}')" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition">Edit</button>
-              <button onclick="deleteItem('${item.id}')" class="text-xs font-medium text-red-400 hover:text-red-300 transition">Delete</button>
+              <button onclick="deleteItem('${item.id}')" class="text-xs font-medium text-rose-400 hover:text-rose-300 transition">Delete</button>
             </td>
           </tr>
         `;
@@ -1133,7 +1483,6 @@
       }
     };
 
-    // Modal unit type conditional handling
     window.onUnitTypeChange = () => {
       const unitType = document.getElementById('item-unit-type').value;
       const standardContainer = document.getElementById('standard-qty-container');
@@ -1218,6 +1567,14 @@
         name: name,
         subcategories: []
       });
+
+      await writeActivityLog({
+        type: 'category',
+        action: 'Category Added',
+        target: name,
+        details: `Created primary category "${name}"`
+      });
+
       input.value = '';
     });
 
@@ -1240,12 +1597,28 @@
       await updateDoc(doc(db, 'categories', catId), {
         subcategories: [...existingSubs, subName]
       });
+
+      await writeActivityLog({
+        type: 'category',
+        action: 'Subcategory Added',
+        target: `${catObj.name} > ${subName}`,
+        details: `Added subcategory "${subName}" under "${catObj.name}"`
+      });
+
       input.value = '';
     });
 
     window.deleteCategory = async (catId) => {
+      const catObj = categoriesData.find(c => c.id === catId);
       if (!confirm("Delete this category?")) return;
       await deleteDoc(doc(db, 'categories', catId));
+
+      await writeActivityLog({
+        type: 'category',
+        action: 'Category Deleted',
+        target: catObj?.name || catId,
+        details: `Deleted category "${catObj?.name || catId}"`
+      });
     };
 
     window.deleteSubcategory = async (catId, subName) => {
@@ -1254,6 +1627,13 @@
       const updated = (catObj.subcategories || []).filter(s => s !== subName);
       await updateDoc(doc(db, 'categories', catId), {
         subcategories: updated
+      });
+
+      await writeActivityLog({
+        type: 'category',
+        action: 'Subcategory Deleted',
+        target: `${catObj.name} > ${subName}`,
+        details: `Removed subcategory "${subName}" from "${catObj.name}"`
       });
     };
 
@@ -1268,14 +1648,14 @@
         <div class="p-4 rounded-xl bg-slate-950 border border-slate-800">
           <div class="flex items-center justify-between mb-2">
             <span class="font-semibold text-white text-sm">${escapeHtml(cat.name)}</span>
-            <button onclick="deleteCategory('${cat.id}')" class="text-xs text-red-400 hover:text-red-300">Remove</button>
+            <button onclick="deleteCategory('${cat.id}')" class="text-xs text-rose-400 hover:text-rose-300">Remove</button>
           </div>
           <div class="flex flex-wrap gap-2 mt-2">
             ${(cat.subcategories && cat.subcategories.length > 0) 
               ? cat.subcategories.map(sub => `
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-slate-900 text-slate-300 border border-slate-800">
                   ${escapeHtml(sub)}
-                  <button onclick="deleteSubcategory('${cat.id}', '${escapeHtml(sub)}')" class="text-slate-500 hover:text-red-400 font-bold">&times;</button>
+                  <button onclick="deleteSubcategory('${cat.id}', '${escapeHtml(sub)}')" class="text-slate-500 hover:text-rose-400 font-bold">&times;</button>
                 </span>
               `).join('')
               : `<span class="text-xs text-slate-500 italic">No subcategories yet</span>`
@@ -1337,6 +1717,32 @@
       document.getElementById('item-modal').classList.add('hidden');
     };
 
+    function buildItemChangeSummary(prevItem, nextPayload) {
+      const changes = [];
+      if ((prevItem.name || '') !== nextPayload.name) {
+        changes.push(`Name: "${prevItem.name || ''}" -> "${nextPayload.name}"`);
+      }
+      if ((prevItem.itemNumber || '') !== nextPayload.itemNumber) {
+        changes.push(`Item #: "${prevItem.itemNumber || '—'}" -> "${nextPayload.itemNumber || '—'}"`);
+      }
+      if ((prevItem.supplier || '') !== nextPayload.supplier) {
+        changes.push(`Supplier: "${prevItem.supplier || '—'}" -> "${nextPayload.supplier || '—'}"`);
+      }
+      if ((prevItem.category || '') !== nextPayload.category || (prevItem.subcategory || '') !== nextPayload.subcategory) {
+        changes.push(`Group: "${prevItem.category || ''}/${prevItem.subcategory || ''}" -> "${nextPayload.category}/${nextPayload.subcategory}"`);
+      }
+      if (Number(prevItem.price) !== Number(nextPayload.price)) {
+        changes.push(`Price: $${Number(prevItem.price || 0).toFixed(2)} -> $${Number(nextPayload.price || 0).toFixed(2)}`);
+      }
+      if (Number(prevItem.quantity) !== Number(nextPayload.quantity)) {
+        changes.push(`Qty: ${Number(prevItem.quantity || 0)} -> ${Number(nextPayload.quantity || 0)}`);
+      }
+      if (Number(prevItem.minQty ?? 10) !== Number(nextPayload.minQty)) {
+        changes.push(`Min Qty: ${Number(prevItem.minQty ?? 10)} -> ${Number(nextPayload.minQty)}`);
+      }
+      return changes.length > 0 ? changes.join(' | ') : 'Saved item without field differences';
+    }
+
     document.getElementById('item-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('item-id').value;
@@ -1382,9 +1788,22 @@
 
       try {
         if (id) {
+          const existingItem = inventoryItems.find(i => i.id === id) || {};
           await updateDoc(doc(db, 'inventory', id), itemPayload);
+          await writeActivityLog({
+            type: 'inventory',
+            action: 'Item Updated',
+            target: itemPayload.name,
+            details: buildItemChangeSummary(existingItem, itemPayload)
+          });
         } else {
           await addDoc(collection(db, 'inventory'), itemPayload);
+          await writeActivityLog({
+            type: 'inventory',
+            action: 'Item Added',
+            target: itemPayload.name,
+            details: `Added Qty: ${itemPayload.quantity}, Min Qty: ${itemPayload.minQty}, Price: $${Number(itemPayload.price || 0).toFixed(2)} (${itemPayload.category}/${itemPayload.subcategory})`
+          });
         }
         closeItemModal();
       } catch (err) {
@@ -1393,9 +1812,18 @@
     });
 
     window.deleteItem = async (id) => {
+      const targetItem = inventoryItems.find(i => i.id === id);
       if (!confirm("Are you sure you want to delete this item?")) return;
       try {
         await deleteDoc(doc(db, 'inventory', id));
+        await writeActivityLog({
+          type: 'inventory',
+          action: 'Item Deleted',
+          target: targetItem?.name || id,
+          details: targetItem
+            ? `Removed item (Item #: ${targetItem.itemNumber || '—'}, Qty: ${targetItem.quantity ?? 0}, ${targetItem.category || ''})`
+            : `Deleted inventory record ${id}`
+        });
       } catch (err) {
         alert("Error deleting item: " + err.message);
       }
