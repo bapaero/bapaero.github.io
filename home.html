@@ -363,6 +363,10 @@
               <option value="inventory">Inventory Changes</option>
               <option value="category">Category Changes</option>
             </select>
+            <button type="button" onclick="clearFilteredLogsSilently()"
+              class="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium rounded-xl border border-rose-500/30 transition">
+              Clear Visible Logs
+            </button>
             <button type="button" onclick="lockAndHideLogs()"
               class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition">
               Lock &amp; Return to Inventory
@@ -395,11 +399,12 @@
                   <th class="py-3 px-4">Action</th>
                   <th class="py-3 px-4">Target</th>
                   <th class="py-3 px-4">Change Details</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody id="logs-tbody" class="divide-y divide-slate-800/70 text-xs">
                 <tr>
-                  <td colspan="5" class="py-10 text-center text-slate-500">Loading activity logs...</td>
+                  <td colspan="6" class="py-10 text-center text-slate-500">Loading activity logs...</td>
                 </tr>
               </tbody>
             </table>
@@ -719,6 +724,7 @@
       addDoc, 
       updateDoc, 
       deleteDoc, 
+      writeBatch,
       onSnapshot,
       query,
       orderBy,
@@ -745,7 +751,7 @@
     const logVerifyAuth = getAuth(logVerifyApp);
 
     // Replace with your own email address so only you can unlock the Audit Log
-    const AUDIT_LOG_OWNER_EMAIL = "bwat3513@gmail.com , kenny@barryavenueplating.com";
+    const AUDIT_LOG_OWNER_EMAIL = "your-email@example.com";
 
     let authMode = 'login';
     let currentUser = null;
@@ -864,7 +870,6 @@
       });
 
       const lastDataRow = firstDataRow + items.length - 1;
-      const totalRow = lastDataRow + 1;
 
       rows.push([
         `TOTAL (${items.length} items)`,
@@ -1251,6 +1256,42 @@
       }
     });
 
+    // ==================== SILENT AUDIT LOG DELETION ====================
+    window.deleteLogEntrySilently = async (logId) => {
+      if (!isAuditLogUnlocked) return;
+      if (!confirm("Delete this log entry? This action will not be logged.")) return;
+      try {
+        await deleteDoc(doc(db, 'activityLogs', logId));
+      } catch (err) {
+        alert("Error deleting log entry: " + err.message);
+      }
+    };
+
+    window.clearFilteredLogsSilently = async () => {
+      if (!isAuditLogUnlocked) return;
+      const filterType = document.getElementById('log-filter-type')?.value || 'all';
+      const targetLogs = activityLogs.filter(entry => filterType === 'all' || entry.type === filterType);
+
+      if (targetLogs.length === 0) {
+        alert("There are no visible log entries to clear.");
+        return;
+      }
+
+      if (!confirm(`Permanently delete ${targetLogs.length} visible log entr${targetLogs.length === 1 ? 'y' : 'ies'}? This action will not be logged.`)) {
+        return;
+      }
+
+      try {
+        const batch = writeBatch(db);
+        targetLogs.forEach(entry => {
+          batch.delete(doc(db, 'activityLogs', entry.id));
+        });
+        await batch.commit();
+      } catch (err) {
+        alert("Error clearing logs: " + err.message);
+      }
+    };
+
     function formatTimestamp(isoString) {
       if (!isoString) return '—';
       const d = new Date(isoString);
@@ -1271,7 +1312,7 @@
       if (filteredLogs.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" class="py-10 text-center text-slate-500">No logged activity for this filter yet.</td>
+            <td colspan="6" class="py-10 text-center text-slate-500">No logged activity for this filter yet.</td>
           </tr>
         `;
         return;
@@ -1298,6 +1339,11 @@
             </td>
             <td class="py-3 px-4 text-slate-200 font-medium">${escapeHtml(entry.target || '—')}</td>
             <td class="py-3 px-4 text-slate-300">${escapeHtml(entry.details || '—')}</td>
+            <td class="py-3 px-4 text-right whitespace-nowrap">
+              <button type="button" onclick="deleteLogEntrySilently('${entry.id}')" class="text-xs font-medium text-rose-400 hover:text-rose-300 transition">
+                Delete
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
