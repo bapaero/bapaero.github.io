@@ -751,10 +751,10 @@
     const logVerifyAuth = getAuth(logVerifyApp);
 
     // Replace with your own email address so only you can unlock the Audit Log
-const AUDIT_LOG_OWNER_EMAILS = [
-  "bwat3513@gmail.com",
- 
-];
+    const AUDIT_LOG_OWNER_EMAIL = {
+      "bwat3513@gmail.com": true
+    };
+
     let authMode = 'login';
     let currentUser = null;
     let sessionStartedAt = null;
